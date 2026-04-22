@@ -530,6 +530,17 @@ textarea.text-input { resize: vertical; min-height: 130px; line-height: 1.9; }
 
 /* 分隔線 */
 hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+/* 匯出分組 */
+.export-group { display:flex; flex-direction:column; gap:8px; margin-bottom:4px; }
+.export-group-title { font-size:11px; font-weight:700; color:var(--blue); letter-spacing:1px; padding-bottom:4px; }
+.gen-result {
+  background:var(--blue-lt); border:1.5px solid rgba(59,91,219,.2);
+  border-radius:8px; padding:10px 14px; font-size:12px; color:var(--blue);
+  display:flex; flex-direction:column; gap:5px;
+}
+.gen-result a { color:var(--blue-dk); font-weight:700; word-break:break-all; }
+.gen-result a:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -705,12 +716,20 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
 
     <!-- Tab 2：匯出 -->
     <div class="tab-pane" id="tab-2">
-      <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px;">
-        <button class="btn btn-secondary" onclick="exportCSV()">📥 匯出 CSV（當前賽程）</button>
-        <button class="btn btn-secondary" onclick="exportJSON()">📥 匯出 JSON（當前賽程）</button>
-        <button class="btn btn-secondary" onclick="exportAllCSV()">📥 匯出所有歷史（CSV）</button>
+      <div class="export-group">
+        <div class="export-group-title">📊 Google 試算表分組表</div>
+        <button class="btn btn-primary" onclick="genBracketSheet()" id="gen-sheet-btn">✨ 產生分組表（寫入試算表）</button>
+        <div id="gen-sheet-result" class="gen-result" style="display:none;"></div>
       </div>
-      <p style="font-size:11px;color:var(--muted);">「所有歷史」需從 GAS / Google 試算表讀取。</p>
+      <hr class="divider">
+      <div class="export-group">
+        <div class="export-group-title">💾 本機下載</div>
+        <button class="btn btn-secondary" onclick="exportCSV()">📥 當前賽程 CSV（本機產生）</button>
+        <button class="btn btn-secondary" onclick="exportJSON()">📥 當前賽程 JSON</button>
+        <button class="btn btn-secondary" onclick="exportBracketFromGAS()">📥 當前賽程 CSV（從 GAS）</button>
+        <button class="btn btn-secondary" onclick="exportAllCSV()">📥 所有賽程歷史 CSV（從 GAS）</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;">「從 GAS」需已設定 GAS 網址且已儲存資料。</p>
     </div>
 
     <!-- Tab 3：設定 -->
@@ -1016,11 +1035,49 @@ function exportCSV(){
   dlCSV(rows,(state.eventName||'bracket')+'_賽程.csv');
 }
 async function exportAllCSV(){
-  const data=await gasGet({action:'list'});
-  if(!data?.records?.length){toast('無歷史資料','err');return;}
-  const rows=[['ID','活動名稱','時間','參賽者','冠軍']];
-  data.records.forEach(r=>rows.push([r.id||'',r.eventName||'',fmtDt(r.timestamp),r.players||'',r.champion||'']));
-  dlCSV(rows,'所有賽程記錄.csv');
+  // 從 GAS 取得 CSV（含總場數 / 完成場數）
+  const data=await gasGet({action:'exportAll'});
+  if(!data?.ok){toast('無法取得資料','err');return;}
+  _dlRaw(data.csv, data.filename||'所有賽程記錄.csv');
+  toast('CSV 已匯出','ok');
+}
+
+async function exportBracketFromGAS(){
+  if(!state.savedId){toast('請先儲存賽程至試算表','err');return;}
+  const data=await gasGet({action:'exportBracket',id:state.savedId});
+  if(!data?.ok){toast('匯出失敗：'+(data?.error||'未知'),'err');return;}
+  _dlRaw(data.csv, data.filename);
+  toast('CSV 已匯出','ok');
+}
+
+async function genBracketSheet(){
+  if(!state.drawn){toast('請先完成抽簽','err');return;}
+  if(!state.savedId){
+    toast('請先儲存賽程至試算表','err');
+    // 自動儲存一次
+    await saveToSheet(true);
+    if(!state.savedId){return;}
+  }
+  const btn=$$('gen-sheet-btn');
+  btn.disabled=true; btn.textContent='產生中…';
+  const res=await gasPost({action:'genBracketSheet',id:state.savedId});
+  btn.disabled=false; btn.textContent='✨ 產生分組表（寫入試算表）';
+  const el=$$('gen-sheet-result');
+  if(res?.ok){
+    el.style.display='flex';
+    el.innerHTML='<span>✅ 工作表已產生：<b>'+res.sheetName+'</b></span><a href="'+res.url+'" target="_blank" rel="noopener">→ 在試算表中開啟</a>';
+    toast('分組表已產生','ok');
+  }else{
+    el.style.display='flex';
+    el.innerHTML='<span style="color:var(--red)">❌ 失敗：'+(res?.error||'未知')+'</span>';
+    toast('產生失敗','err');
+  }
+}
+
+function _dlRaw(csvText, fname){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csvText],{type:'text/csv;charset=utf-8;'}));
+  a.download=fname; a.click();
 }
 function exportJSON(){
   if(!state.drawn){toast('尚無對戰資料','err');return;}
