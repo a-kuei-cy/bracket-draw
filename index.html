@@ -5,463 +5,551 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>單淘汰賽抽簽系統</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@700;900&display=swap');
 
-/* ══ CSS 變數 ══════════════════════════════════════ */
+/* ══ 色彩系統（暖白 × 靛藍 × 琥珀） ══════════════════ */
 :root {
-  --gold:#f0c040; --gold2:#c8960a;
-  --red:#c0392b;  --dark:#0f0f14;
-  --panel:#16161e; --border:#2a2a3a;
-  --text:#e8e0d0;  --muted:#777;
-  --slot:#1c1c26;  --green:#27ae60;
+  --bg:       #f5f3ef;        /* 暖米白底 */
+  --bg2:      #edeae4;        /* 略深米白 */
+  --surface:  #ffffff;        /* 卡片白 */
+  --border:   #ddd9d2;        /* 淺灰邊線 */
+  --border2:  #c8c3ba;        /* 稍深邊線 */
+
+  --ink:      #1e1a14;        /* 主文字 */
+  --ink2:     #5a5248;        /* 次文字 */
+  --muted:    #9b9389;        /* 淡文字 */
+
+  --blue:     #3b5bdb;        /* 靛藍主色 */
+  --blue-lt:  #e8ecfd;        /* 靛藍淺底 */
+  --blue-md:  #748ffc;        /* 靛藍中 */
+  --blue-dk:  #2f4ac4;        /* 靛藍深 */
+
+  --amber:    #f59f00;        /* 琥珀 */
+  --amber-lt: #fff3cd;        /* 琥珀淺底 */
+  --amber-dk: #c87800;        /* 琥珀深 */
+
+  --green:    #2f9e44;
+  --green-lt: #d3f9d8;
+  --red:      #c92a2a;
+  --red-lt:   #ffe3e3;
+
+  --shadow-sm: 0 1px 4px rgba(30,26,20,.08);
+  --shadow-md: 0 4px 16px rgba(30,26,20,.10);
+  --shadow-lg: 0 12px 40px rgba(30,26,20,.14);
+
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top,    0px);
-  --hdr: 54px;   /* header height */
-  --nav: 60px;   /* mobile bottom nav */
+  --hdr: 58px;
+  --nav: 62px;
+  --r:   10px;   /* border-radius */
 }
 
-/* ══ Reset ═════════════════════════════════════════ */
+/* ══ Reset ════════════════════════════════════════════ */
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 html { height:100%; }
 body {
-  background:var(--dark); color:var(--text);
-  font-family:'Noto Sans TC',sans-serif;
-  height:100%; overflow:hidden;
-}
-body::before {
-  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(ellipse 70% 40% at 50% -5%, rgba(240,192,64,.07) 0%, transparent 70%),
-    repeating-linear-gradient(0deg,  transparent, transparent 39px, rgba(255,255,255,.02) 40px),
-    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,.02) 40px);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans TC', sans-serif;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ══ Header ════════════════════════════════════════ */
-header {
-  position:fixed; top:0; left:0; right:0; z-index:50;
-  height:var(--hdr);
-  padding-top:var(--safe-t);
-  background:rgba(15,15,20,.95);
-  border-bottom:1px solid var(--border);
-  backdrop-filter:blur(12px);
-  display:flex; align-items:center;
-  padding-left:14px; padding-right:14px; gap:12px;
+/* 背景紋理 */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% -10%, rgba(59,91,219,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(245,159,0,.06) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239b9389' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
-.logo-mark {
-  width:34px; height:34px; flex-shrink:0;
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
-  display:flex; align-items:center; justify-content:center;
-  font-size:15px; color:#000; font-weight:900;
+
+/* ══ Header ════════════════════════════════════════════ */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: var(--hdr);
+  padding-top: var(--safe-t);
+  background: rgba(255,255,255,.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex; align-items: center;
+  padding-left: 16px; padding-right: 16px; gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.logo-badge {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.logo-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; box-shadow: 0 2px 8px rgba(59,91,219,.35);
+  flex-shrink: 0;
 }
 h1 {
-  font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(16px,3vw,26px); letter-spacing:3px;
-  color:var(--gold); text-shadow:0 0 18px rgba(240,192,64,.35);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+  font-weight: 900; font-size: clamp(15px, 2.8vw, 22px);
+  color: var(--ink); letter-spacing: .5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-h1 span { color:var(--text); }
-.hdr-right { margin-left:auto; display:flex; gap:6px; align-items:center; }
+h1 em { color: var(--blue); font-style: normal; }
 
-/* GAS 狀態點（header 右側，桌面） */
+.hdr-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* GAS 狀態點 */
 #gas-dot {
-  width:8px; height:8px; border-radius:50%;
-  background:var(--muted); flex-shrink:0; cursor:pointer;
-  transition:background .3s;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border2); transition: background .3s; flex-shrink: 0;
+  cursor: help;
 }
-#gas-dot.ok  { background:var(--green); box-shadow:0 0 6px rgba(39,174,96,.5); }
-#gas-dot.err { background:var(--red); }
-#gas-dot.ing { background:var(--gold); }
+#gas-dot.ok  { background: var(--green); box-shadow: 0 0 0 3px var(--green-lt); }
+#gas-dot.err { background: var(--red); }
+#gas-dot.ing { background: var(--amber); animation: pulse .8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 .btn-admin {
-  padding:6px 12px; border-radius:5px; font-size:12px; font-weight:700;
-  letter-spacing:1px; cursor:pointer; border:1px solid var(--border);
-  background:transparent; color:var(--muted);
-  font-family:'Noto Sans TC',sans-serif; transition:all .2s;
-  white-space:nowrap;
+  padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  letter-spacing: .5px; cursor: pointer;
+  border: 1.5px solid var(--border2);
+  background: var(--surface); color: var(--ink2);
+  font-family: 'Noto Sans TC', sans-serif; transition: all .18s;
 }
-.btn-admin:hover { border-color:var(--gold); color:var(--gold); }
-.btn-admin.active { border-color:var(--gold); color:var(--gold); background:rgba(240,192,64,.08); }
+.btn-admin:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+.btn-admin.active { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
 
-/* ══ 桌面版 layout ══════════════════════════════════
-   sidebar | bracket-area
-   ─────────────────────────────────────────────────── */
+/* ══ 主體 Layout ════════════════════════════════════════ */
 .app {
-  position:fixed;
-  top:var(--hdr); bottom:0; left:0; right:0;
-  display:grid;
-  grid-template-columns:280px 1fr;
-  grid-template-rows:1fr;
-  z-index:1;
+  position: fixed;
+  top: var(--hdr); bottom: 0; left: 0; right: 0;
+  display: grid;
+  grid-template-columns: 288px 1fr;
+  z-index: 1;
 }
 
-/* ══ 左側 Sidebar ═══════════════════════════════════ */
+/* ══ 左側 Sidebar ════════════════════════════════════════ */
 .sidebar {
-  background:var(--panel);
-  border-right:1px solid var(--border);
-  display:flex; flex-direction:column;
-  overflow:hidden;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  box-shadow: 2px 0 12px rgba(30,26,20,.05);
+  z-index: 2;
 }
 .sidebar-inner {
-  flex:1; overflow-y:auto; padding:16px 14px;
-  display:flex; flex-direction:column; gap:13px;
-  /* 捲軸樣式 */
-  scrollbar-width:thin;
-  scrollbar-color:var(--border) transparent;
+  flex: 1; overflow-y: auto; padding: 18px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
-.sidebar-inner::-webkit-scrollbar { width:4px; }
-.sidebar-inner::-webkit-scrollbar-track { background:transparent; }
-.sidebar-inner::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+.sidebar-inner::-webkit-scrollbar { width: 4px; }
+.sidebar-inner::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
 .section-title {
-  font-size:10px; letter-spacing:3px; color:var(--gold);
-  text-transform:uppercase; margin-bottom:6px;
-  display:flex; align-items:center; gap:8px;
+  font-size: 10px; letter-spacing: 2.5px; color: var(--blue);
+  text-transform: uppercase; font-weight: 700; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
 }
-.section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.section-title::after { content: ''; flex: 1; height: 1.5px; background: var(--blue-lt); border-radius: 1px; }
 
+/* 輸入框 */
 .text-input {
-  width:100%; background:var(--slot); border:1px solid var(--border);
-  border-radius:6px; color:var(--text); font-family:'Noto Sans TC',sans-serif;
-  font-size:13px; padding:9px 12px; outline:none; transition:border-color .2s;
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  color: var(--ink);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px; padding: 10px 13px;
+  outline: none; transition: border-color .18s, box-shadow .18s;
 }
-.text-input:focus { border-color:var(--gold); }
-textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
+.text-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,91,219,.12);
+  background: #fff;
+}
+textarea.text-input { resize: vertical; min-height: 130px; line-height: 1.9; }
 
-.count-wrap { text-align:center; }
+/* 人數大字 */
+.count-wrap { text-align: center; padding: 4px 0; }
 .count-display {
-  font-size:40px; font-family:'Bebas Neue',sans-serif;
-  color:var(--gold); line-height:1; letter-spacing:2px;
+  font-family: 'Outfit', sans-serif; font-weight: 900;
+  font-size: 52px; color: var(--blue); line-height: 1;
+  letter-spacing: -2px;
 }
-.count-label { font-size:10px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+.count-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
 
-.info-grid {
-  display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;
-}
+/* 資訊格 */
+.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .info-cell {
-  background:var(--slot); border:1px solid var(--border);
-  border-radius:6px; padding:8px 6px; text-align:center;
+  background: var(--blue-lt); border: 1.5px solid rgba(59,91,219,.15);
+  border-radius: var(--r); padding: 10px 6px; text-align: center;
 }
-.info-cell .val { font-size:18px; font-family:'Bebas Neue',sans-serif; color:var(--gold); letter-spacing:1px; }
-.info-cell .lab { font-size:9px; color:var(--muted); letter-spacing:1px; margin-top:1px; }
+.info-cell .val { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 17px; color: var(--blue); }
+.info-cell .lab { font-size: 9px; color: var(--blue-md); letter-spacing: 1.5px; margin-top: 2px; text-transform: uppercase; }
 
 /* ── 按鈕 ── */
 .btn {
-  width:100%; padding:11px; border:none; border-radius:6px;
-  font-family:'Noto Sans TC',sans-serif; font-size:13px; font-weight:700;
-  cursor:pointer; transition:all .2s; letter-spacing:2px; touch-action:manipulation;
+  width: 100%; padding: 12px; border: none; border-radius: var(--r);
+  font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .18s; letter-spacing: 1px;
+  touch-action: manipulation;
 }
-.btn-primary { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#0f0f14; }
-.btn-primary:hover  { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 6px 18px rgba(240,192,64,.3); }
-.btn-primary:active { transform:translateY(0); }
-.btn-secondary { background:transparent; color:var(--muted); border:1px solid var(--border); }
-.btn-secondary:hover { border-color:var(--text); color:var(--text); }
-.btn-green { background:rgba(39,174,96,.14); color:#2ecc71; border:1px solid rgba(39,174,96,.3); }
-.btn-green:hover { background:rgba(39,174,96,.24); }
-.btn-danger { background:transparent; color:var(--red); border:1px solid rgba(192,57,43,.35); font-size:12px; padding:9px; }
-.btn-danger:hover { background:rgba(192,57,43,.1); }
-.btn:disabled { opacity:.35; cursor:not-allowed; transform:none !important; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(59,91,219,.30);
+}
+.btn-primary:hover  { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,91,219,.35); }
+.btn-primary:active { transform: translateY(0); filter: brightness(.96); }
 
-/* sidebar 底部按鈕區（固定） */
+.btn-secondary {
+  background: var(--bg); color: var(--ink2);
+  border: 1.5px solid var(--border2);
+}
+.btn-secondary:hover { border-color: var(--blue-md); color: var(--blue); background: var(--blue-lt); }
+
+.btn-green {
+  background: var(--green-lt); color: var(--green);
+  border: 1.5px solid rgba(47,158,68,.25);
+}
+.btn-green:hover { background: #c3f7cc; }
+
+.btn-amber {
+  background: var(--amber-lt); color: var(--amber-dk);
+  border: 1.5px solid rgba(245,159,0,.3);
+}
+.btn-amber:hover { background: #ffe8a0; }
+
+.btn-danger {
+  background: var(--red-lt); color: var(--red);
+  border: 1.5px solid rgba(201,42,42,.2);
+  font-size: 12px; padding: 9px;
+}
+.btn-danger:hover { background: #ffd0d0; }
+
+.btn:disabled { opacity: .38; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* sidebar 底部 */
 .sidebar-actions {
-  padding:12px 14px;
-  border-top:1px solid var(--border);
-  display:flex; flex-direction:column; gap:8px;
-  background:var(--panel);
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--surface);
 }
 
-/* ══ Bracket 右側 ══════════════════════════════════ */
+/* ══ 對戰圖區 ═════════════════════════════════════════ */
 .bracket-area {
-  overflow:auto; padding:20px 18px;
-  -webkit-overflow-scrolling:touch;
+  overflow: auto; padding: 24px 20px;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
 }
 .bracket-wrap {
-  display:flex; gap:0;
-  align-items:flex-start;
-  min-width:max-content;
+  display: flex; gap: 0;
+  align-items: flex-start;
+  min-width: max-content;
 }
 
-.round-col { display:flex; flex-direction:column; min-width:150px; }
+.round-col { display: flex; flex-direction: column; min-width: 154px; }
 .round-header {
-  font-size:10px; letter-spacing:3px; color:var(--gold);
-  text-transform:uppercase; text-align:center; padding:0 0 12px;
+  font-size: 10px; letter-spacing: 2.5px; color: var(--blue);
+  text-transform: uppercase; font-weight: 700;
+  text-align: center; padding: 0 0 12px;
 }
-.matches-col { display:flex; flex-direction:column; gap:0; flex:1; }
-.connector-col { width:36px; position:relative; }
+.matches-col { display: flex; flex-direction: column; flex: 1; }
+.connector-col { width: 36px; }
 
-.match-wrapper { display:flex; flex-direction:column; justify-content:center; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
-.match-wrapper { animation:fadeIn .25s both; }
+.match-wrapper { display: flex; flex-direction: column; justify-content: center; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.match-wrapper { animation: fadeUp .22s both; }
 
 .match-card {
-  background:var(--slot); border:1px solid var(--border);
-  border-radius:6px; margin:0 6px; overflow:hidden; transition:border-color .2s;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  margin: 0 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .15s, box-shadow .15s;
 }
-.match-card:hover { border-color:rgba(240,192,64,.22); }
+.match-card:hover { border-color: var(--blue-md); box-shadow: var(--shadow-md); }
 
 .slot {
-  display:flex; align-items:center; gap:7px;
-  padding:7px 9px; transition:background .13s;
-  min-height:34px; user-select:none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; min-height: 36px;
+  transition: background .12s;
+  user-select: none;
 }
-.slot.clickable { cursor:pointer; }
-.slot.clickable:hover { background:rgba(255,255,255,.05); }
-.slot.clickable:active { background:rgba(255,255,255,.08); }
-.slot:first-child { border-bottom:1px solid var(--border); }
+.slot.clickable { cursor: pointer; }
+.slot.clickable:hover { background: var(--blue-lt); }
+.slot.clickable:active { background: #d8e0fb; }
+.slot:first-child { border-bottom: 1.5px solid var(--border); }
+
 .seed {
-  font-size:10px; color:var(--muted); min-width:14px;
-  text-align:right; font-family:'Bebas Neue',sans-serif;
+  font-size: 10px; color: var(--muted); min-width: 14px;
+  text-align: right; font-family: 'Outfit', sans-serif; font-weight: 700;
 }
-.player-name { font-size:12px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.player-name.empty { color:var(--border); font-size:11px; }
-.slot.winner { background:rgba(39,174,96,.08); }
-.slot.winner .player-name { color:#2ecc71; font-weight:700; }
-.slot.loser .player-name { color:var(--muted); text-decoration:line-through; }
-.win-arrow { font-size:10px; color:#2ecc71; flex-shrink:0; }
+.player-name { font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.player-name.empty { color: var(--border2); font-size: 11px; }
 
+.slot.winner { background: var(--green-lt); }
+.slot.winner .player-name { color: var(--green); font-weight: 700; }
+.slot.loser  { background: var(--bg2); }
+.slot.loser .player-name  { color: var(--muted); text-decoration: line-through; }
+.win-arrow { font-size: 10px; color: var(--green); flex-shrink: 0; }
+
+/* 冠軍框 */
 .champion-box {
-  background:linear-gradient(135deg,rgba(240,192,64,.12),rgba(200,150,10,.05));
-  border:1px solid rgba(240,192,64,.4); border-radius:10px;
-  padding:18px 20px; text-align:center; margin:0 6px; min-width:128px;
+  background: linear-gradient(145deg, var(--amber-lt), rgba(255,245,200,.4));
+  border: 2px solid rgba(245,159,0,.45);
+  border-radius: 14px;
+  padding: 22px 20px; text-align: center;
+  margin: 0 8px; min-width: 130px;
+  box-shadow: 0 4px 20px rgba(245,159,0,.15);
 }
-.crown { font-size:24px; margin-bottom:5px; }
-.champ-label { font-size:9px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; }
-.champ-name { font-size:15px; font-weight:700; margin-top:6px; color:var(--gold); }
-.champ-name.empty { color:var(--border); font-size:12px; font-weight:400; }
+.crown { font-size: 28px; margin-bottom: 6px; }
+.champ-label { font-size: 9px; letter-spacing: 3px; color: var(--amber-dk); text-transform: uppercase; font-weight: 700; }
+.champ-name { font-size: 16px; font-weight: 900; margin-top: 8px; color: var(--amber-dk); font-family: 'Outfit', sans-serif; }
+.champ-name.empty { color: var(--border2); font-size: 12px; font-weight: 400; }
 
+/* 空白提示 */
 .empty-state {
-  display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:14px; height:70%; color:var(--muted); text-align:center;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 16px; height: 70%;
+  color: var(--muted); text-align: center;
 }
-.empty-state .big-icon { font-size:48px; opacity:.25; }
-.empty-state p { font-size:13px; line-height:1.9; }
+.empty-icon {
+  width: 80px; height: 80px; border-radius: 24px;
+  background: var(--blue-lt);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; box-shadow: var(--shadow-sm);
+}
+.empty-state p { font-size: 14px; line-height: 2; color: var(--ink2); }
+.empty-state strong { color: var(--blue); }
 
-/* ══ 抽簽動畫遮罩 ══════════════════════════════════ */
+/* ══ 抽簽遮罩 ════════════════════════════════════════ */
 #draw-overlay {
-  display:none; position:fixed; inset:0; z-index:400;
-  background:rgba(0,0,0,.88); backdrop-filter:blur(6px);
-  align-items:center; justify-content:center; flex-direction:column; gap:16px;
+  display: none; position: fixed; inset: 0; z-index: 400;
+  background: rgba(245,243,239,.88);
+  backdrop-filter: blur(8px);
+  align-items: center; justify-content: center; flex-direction: column; gap: 18px;
 }
-#draw-overlay.active { display:flex; }
-.draw-spinner {
-  width:56px; height:56px;
-  border:3px solid var(--border); border-top-color:var(--gold);
-  border-radius:50%; animation:spin .7s linear infinite;
+#draw-overlay.active { display: flex; }
+.draw-ring {
+  width: 60px; height: 60px;
+  border: 4px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
 }
-@keyframes spin { to{transform:rotate(360deg)} }
-.draw-text { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:4px; color:var(--gold); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.draw-text {
+  font-family: 'Outfit', sans-serif; font-weight: 700;
+  font-size: 18px; letter-spacing: 2px; color: var(--blue);
+}
 
 /* ══ Modal ══════════════════════════════════════════ */
 .modal-bg {
-  display:none; position:fixed; inset:0; z-index:300;
-  background:rgba(0,0,0,.82); backdrop-filter:blur(8px);
-  align-items:flex-end; justify-content:center; /* 手機從底滑入 */
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(30,26,20,.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: flex-end; justify-content: center;
 }
-.modal-bg.active { display:flex; }
-.modal {
-  background:var(--panel); border:1px solid var(--border);
-  border-radius:16px 16px 0 0;   /* 手機 bottom sheet */
-  padding:24px 22px;
-  width:100%; max-width:100vw;
-  max-height:88vh; overflow-y:auto;
-  position:relative;
-  animation:slideUp .25s ease-out;
-  padding-bottom: calc(24px + var(--safe-b));
-}
-@keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-bg.active { display: flex; }
 
-.modal h2 { font-size:14px; font-weight:700; margin-bottom:16px; color:var(--gold); letter-spacing:2px; }
+.modal {
+  background: var(--surface);
+  border-top: 1.5px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  padding: 22px 22px calc(22px + var(--safe-b));
+  width: 100%; max-width: 100vw;
+  max-height: 90vh; overflow-y: auto;
+  position: relative;
+  animation: slideUp .22s cubic-bezier(.34,1.2,.64,1);
+  box-shadow: 0 -8px 40px rgba(30,26,20,.12);
+}
+@keyframes slideUp { from{transform:translateY(32px);opacity:0} to{transform:none;opacity:1} }
+
 .modal-handle {
-  width:40px; height:4px; background:var(--border); border-radius:2px;
-  margin:0 auto 18px; flex-shrink:0;
+  width: 40px; height: 4px; border-radius: 2px;
+  background: var(--border2); margin: 0 auto 18px;
+}
+.modal h2 {
+  font-size: 16px; font-weight: 900; margin-bottom: 18px;
+  color: var(--ink); font-family: 'Outfit', sans-serif;
 }
 .modal-close {
-  position:absolute; top:16px; right:18px; background:none; border:none;
-  color:var(--muted); font-size:18px; cursor:pointer; line-height:1;
-  padding:4px;
+  position: absolute; top: 18px; right: 20px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg2); border: none;
+  color: var(--ink2); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
 }
-.modal-close:hover { color:var(--text); }
+.modal-close:hover { background: var(--border2); }
 
-.field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
-.field-group label { font-size:11px; color:var(--muted); letter-spacing:1px; }
+.field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field-group label { font-size: 11px; color: var(--ink2); letter-spacing: 1px; font-weight: 700; }
 .field-group input,
 .field-group textarea {
-  background:var(--slot); border:1px solid var(--border); border-radius:6px;
-  color:var(--text); padding:10px 12px; font-size:14px; outline:none;
-  font-family:'Noto Sans TC',sans-serif; width:100%;
-  -webkit-appearance:none;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--ink);
+  padding: 11px 13px; font-size: 14px; outline: none;
+  font-family: 'Noto Sans TC', sans-serif; width: 100%;
+  -webkit-appearance: none; transition: border-color .15s, box-shadow .15s;
 }
-.field-group input[type="password"] { letter-spacing:4px; }
 .field-group input:focus,
-.field-group textarea:focus { border-color:var(--gold); }
-
-.modal-err { font-size:12px; color:var(--red); margin-top:-6px; margin-bottom:8px; min-height:18px; }
-.modal-actions { display:flex; gap:10px; margin-top:8px; }
-.modal-actions .btn { flex:1; padding:13px; font-size:14px; }
+.field-group textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,91,219,.12);
+  background: #fff;
+}
+.field-group input[type="password"] { letter-spacing: 4px; }
+.modal-err { font-size: 12px; color: var(--red); margin-top: -6px; margin-bottom: 8px; min-height: 18px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+.modal-actions .btn { flex: 1; padding: 13px; }
 
 /* Admin tabs */
-.admin-tabs { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
+.admin-tabs { display: flex; gap: 5px; margin-bottom: 16px; flex-wrap: wrap; }
 .admin-tab {
-  flex:1; min-width:64px; padding:9px 4px;
-  background:var(--slot); border:1px solid var(--border); border-radius:6px;
-  color:var(--muted); font-size:11px; font-weight:700; cursor:pointer;
-  text-align:center; transition:all .2s; letter-spacing:1px;
-  font-family:'Noto Sans TC',sans-serif; touch-action:manipulation;
+  flex: 1; min-width: 64px; padding: 9px 4px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--ink2);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  text-align: center; transition: all .15s; letter-spacing: .5px;
+  font-family: 'Noto Sans TC', sans-serif; touch-action: manipulation;
 }
-.admin-tab.active { background:rgba(240,192,64,.1); border-color:var(--gold); color:var(--gold); }
-.tab-pane { display:none; }
-.tab-pane.active { display:block; }
+.admin-tab.active {
+  background: var(--blue-lt); border-color: var(--blue-md);
+  color: var(--blue);
+}
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
 
 /* 歷史列表 */
-.history-list { max-height:44vh; overflow-y:auto; }
+.history-list { max-height: 44vh; overflow-y: auto; }
 .history-item {
-  display:flex; gap:8px; align-items:flex-start;
-  padding:10px 12px; border:1px solid var(--border); border-radius:7px;
-  margin-bottom:7px; background:var(--slot); font-size:12px; cursor:pointer;
-  transition:border-color .15s; touch-action:manipulation;
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 11px 13px; border: 1.5px solid var(--border);
+  border-radius: 10px; margin-bottom: 7px;
+  background: var(--bg); cursor: pointer;
+  transition: all .14s; touch-action: manipulation;
 }
-.history-item:hover  { border-color:rgba(240,192,64,.35); }
-.history-item:active { background:rgba(240,192,64,.05); }
-.history-item .ts    { color:var(--muted); font-size:10px; }
-.history-item .title { color:var(--text); font-weight:700; font-size:13px; }
-.history-item .sub   { color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:min(200px,50vw); }
-.history-item .champ-tag { margin-left:auto; font-size:11px; color:var(--gold); white-space:nowrap; flex-shrink:0; }
-.history-empty { text-align:center; color:var(--muted); font-size:13px; padding:24px 0; }
+.history-item:hover  { border-color: var(--blue-md); background: var(--blue-lt); }
+.history-item:active { background: #d8e0fb; }
+.history-item .title { color: var(--ink); font-weight: 700; font-size: 13px; }
+.history-item .sub   { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(200px, 50vw); }
+.history-item .ts    { color: var(--muted); font-size: 10px; }
+.history-item .champ-tag { margin-left: auto; font-size: 11px; color: var(--amber-dk); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.history-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 24px 0; }
 
-/* GAS 輸入（管理者面板內） */
-.gas-field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-.gas-field label { font-size:11px; color:var(--muted); letter-spacing:1px; }
+/* GAS 欄位 */
+.gas-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.gas-field label { font-size: 11px; color: var(--ink2); letter-spacing: 1px; font-weight: 700; }
 .gas-field input {
-  background:var(--slot); border:1px solid var(--border); border-radius:6px;
-  color:var(--text); padding:10px 12px; font-size:11px; outline:none;
-  font-family:monospace; width:100%; -webkit-appearance:none;
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+  color: var(--ink); padding: 11px 13px; font-size: 11px; outline: none;
+  font-family: monospace; width: 100%; -webkit-appearance: none;
+  transition: border-color .15s;
 }
-.gas-field input:focus { border-color:var(--gold); }
-#gas-status-label {
-  font-size:11px; margin-top:4px;
-  display:flex; align-items:center; gap:6px;
-}
-#gas-dot-modal {
-  width:8px; height:8px; border-radius:50%;
-  background:var(--muted); flex-shrink:0; transition:background .3s;
-}
-#gas-dot-modal.ok  { background:var(--green); box-shadow:0 0 6px rgba(39,174,96,.5); }
-#gas-dot-modal.err { background:var(--red); }
-#gas-dot-modal.ing { background:var(--gold); }
+.gas-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,91,219,.12); background: #fff; }
+#gas-status-label { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+#gas-dot-modal { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; transition: background .3s; }
+#gas-dot-modal.ok  { background: var(--green); }
+#gas-dot-modal.err { background: var(--red); }
+#gas-dot-modal.ing { background: var(--amber); }
 
 /* ══ Toast ══════════════════════════════════════════ */
 #toast {
-  position:fixed; bottom:calc(var(--nav) + 12px + var(--safe-b));
-  left:50%; transform:translateX(-50%) translateY(12px);
-  z-index:500; background:var(--panel); border:1px solid var(--border);
-  border-radius:20px; padding:10px 18px; font-size:13px; color:var(--text);
-  opacity:0; transition:all .28s; pointer-events:none;
-  white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
+  position: fixed;
+  bottom: calc(var(--nav) + 12px + var(--safe-b));
+  left: 50%; transform: translateX(-50%) translateY(14px);
+  z-index: 500;
+  background: var(--ink); color: #fff;
+  border-radius: 20px; padding: 10px 20px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; transition: all .25s;
+  pointer-events: none;
+  white-space: nowrap; max-width: 90vw;
+  overflow: hidden; text-overflow: ellipsis;
+  box-shadow: var(--shadow-lg);
 }
-#toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
-#toast.ok  { border-color:rgba(39,174,96,.6); }
-#toast.err { border-color:rgba(192,57,43,.6); }
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.ok  { background: var(--green); }
+#toast.err { background: var(--red); }
 
-/* ══ 行動版底部導覽列 ═══════════════════════════════ */
+/* ══ 行動版底部導覽 ════════════════════════════════ */
 #mobile-nav {
-  display:none;
-  position:fixed; bottom:0; left:0; right:0; z-index:50;
-  height:calc(var(--nav) + var(--safe-b));
-  background:rgba(15,15,20,.96); backdrop-filter:blur(12px);
-  border-top:1px solid var(--border);
-  padding-bottom:var(--safe-b);
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  height: calc(var(--nav) + var(--safe-b));
+  background: rgba(255,255,255,.94);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding-bottom: var(--safe-b);
+  box-shadow: 0 -2px 16px rgba(30,26,20,.08);
 }
-.mobile-nav-inner {
-  height:var(--nav);
-  display:flex; align-items:stretch;
-}
+.mobile-nav-inner { height: var(--nav); display: flex; align-items: stretch; }
 .nav-tab {
-  flex:1; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:3px;
-  cursor:pointer; transition:all .15s;
-  color:var(--muted); touch-action:manipulation;
-  border:none; background:none; font-family:'Noto Sans TC',sans-serif;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  cursor: pointer; touch-action: manipulation;
+  color: var(--muted); border: none; background: none;
+  font-family: 'Noto Sans TC', sans-serif; transition: color .15s;
 }
-.nav-tab .nav-icon { font-size:20px; line-height:1; }
-.nav-tab .nav-label { font-size:10px; letter-spacing:1px; }
-.nav-tab.active { color:var(--gold); }
-.nav-tab:active { opacity:.7; }
+.nav-tab .nav-icon  { font-size: 21px; line-height: 1; }
+.nav-tab .nav-label { font-size: 10px; letter-spacing: .5px; font-weight: 700; }
+.nav-tab.active { color: var(--blue); }
+.nav-tab:active { opacity: .7; }
 
-/* ══ 響應式斷點 ════════════════════════════════════
-   ≤ 768px → 行動版：底部 tab、全螢幕各 pane
-   ──────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* 隱藏桌面 sidebar */
-  .app { grid-template-columns:1fr; }
-  .sidebar { display:none; }
-
-  /* bracket area 填滿 */
-  .bracket-area {
-    padding:14px 12px;
-    padding-bottom:calc(var(--nav) + var(--safe-b) + 8px);
-  }
-
-  /* 顯示底部導覽 */
-  #mobile-nav { display:block; }
-
-  /* toast 位置 */
-  #toast { bottom:calc(var(--nav) + 12px + var(--safe-b)); }
-
-  /* 行動設定面板（全螢幕覆蓋） */
-  #mobile-setup {
-    display:flex; /* 預設顯示 */
-  }
-
-  /* modal = full bottom sheet on mobile */
-  .modal {
-    border-radius:16px 16px 0 0;
-    max-height:92vh;
-  }
-  .admin-tab { font-size:10px; padding:8px 2px; }
-}
-
-/* 桌面（> 768px）隱藏行動設定面板 */
-@media (min-width: 769px) {
-  #mobile-setup { display:none !important; }
-  #gas-dot { display:flex; }
-}
-
-/* ══ 行動版「設定」tab 內容（全螢幕 overlay） ══════ */
+/* ══ 行動版設定面板 ════════════════════════════════ */
 #mobile-setup {
-  display:none;
-  position:fixed; inset:0; z-index:40;
-  background:var(--dark);
-  flex-direction:column;
-  top:var(--hdr); bottom:calc(var(--nav) + var(--safe-b));
-  overflow-y:auto;
-  padding:16px 16px;
-  gap:13px;
+  display: none;
+  position: fixed; inset: 0; z-index: 40;
+  background: var(--bg);
+  flex-direction: column;
+  top: var(--hdr); bottom: calc(var(--nav) + var(--safe-b));
+  overflow-y: auto; padding: 18px 16px; gap: 14px;
 }
 
-/* 對戰區在行動版顯示 / 隱藏 */
-#bracket-pane { flex:1; overflow:hidden; }
-
+/* ══ 響應式 ═══════════════════════════════════════ */
 @media (max-width: 768px) {
-  #bracket-pane { display:block; }
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .bracket-area { padding: 14px 10px; padding-bottom: calc(var(--nav) + var(--safe-b) + 8px); }
+  #mobile-nav { display: block; }
+  #toast { bottom: calc(var(--nav) + 12px + var(--safe-b)); }
+  #mobile-setup { display: flex; }
 }
+@media (min-width: 769px) {
+  #mobile-setup { display: none !important; }
+}
+
+/* 分隔線 */
+hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 </style>
 </head>
 <body>
 
 <!-- ══ Header ══════════════════════════════════════ -->
 <header>
-  <div class="logo-mark">⚔</div>
-  <h1>SINGLE ELIMINATION <span>抽簽</span></h1>
+  <div class="logo-badge">
+    <div class="logo-icon">🏆</div>
+  </div>
+  <h1>單淘汰賽 <em>抽簽系統</em></h1>
   <div class="hdr-right">
     <span id="gas-dot" title="GAS 連線狀態"></span>
     <button class="btn-admin" id="admin-btn">🔐 管理者</button>
   </div>
 </header>
 
-<!-- ══ 主體（桌面 grid）══════════════════════════════ -->
+<!-- ══ 主體 ══════════════════════════════════════════ -->
 <div class="app">
 
-  <!-- 桌面左側 sidebar -->
+  <!-- 桌面 Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-inner">
       <div>
@@ -480,7 +568,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
         <div class="info-grid">
           <div class="info-cell"><div class="val" id="info-rounds">—</div><div class="lab">輪次</div></div>
           <div class="info-cell"><div class="val" id="info-byes">—</div><div class="lab">輪空</div></div>
-          <div class="info-cell"><div class="val" id="info-matches">—</div><div class="lab">總場數</div></div>
+          <div class="info-cell"><div class="val" id="info-matches">—</div><div class="lab">總場</div></div>
         </div>
       </div>
     </div>
@@ -495,15 +583,15 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
   <!-- 對戰圖 -->
   <div id="bracket-pane" class="bracket-area">
     <div class="empty-state" id="empty-state">
-      <div class="big-icon">🏆</div>
-      <p>填寫活動名稱與參賽者名單<br>至少 2 位，點「開始抽簽」<br>產生對戰表</p>
+      <div class="empty-icon">🏆</div>
+      <p>填寫<strong>活動名稱</strong>與<strong>參賽者名單</strong><br>至少 2 位，點「開始抽簽」<br>產生對戰表後可記錄勝負</p>
     </div>
     <div class="bracket-wrap" id="bracket-wrap" style="display:none;"></div>
   </div>
 
 </div>
 
-<!-- ══ 行動版「設定」全螢幕面板 ════════════════════════ -->
+<!-- ══ 行動版設定面板 ════════════════════════════════ -->
 <div id="mobile-setup">
   <div>
     <div class="section-title">活動名稱</div>
@@ -511,7 +599,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
   </div>
   <div>
     <div class="section-title">參賽者名單</div>
-    <textarea id="m-names-input" class="text-input" style="min-height:160px;line-height:1.8;"
+    <textarea id="m-names-input" class="text-input" style="min-height:160px;line-height:1.9;"
       placeholder="每行一位，例如：&#10;小明&#10;小華&#10;阿志&#10;阿美"></textarea>
   </div>
   <div class="count-wrap">
@@ -522,7 +610,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
     <div class="info-grid">
       <div class="info-cell"><div class="val" id="m-info-rounds">—</div><div class="lab">輪次</div></div>
       <div class="info-cell"><div class="val" id="m-info-byes">—</div><div class="lab">輪空</div></div>
-      <div class="info-cell"><div class="val" id="m-info-matches">—</div><div class="lab">總場數</div></div>
+      <div class="info-cell"><div class="val" id="m-info-matches">—</div><div class="lab">總場</div></div>
     </div>
   </div>
   <button class="btn btn-primary" id="m-draw-btn" disabled>🎲 開始抽簽</button>
@@ -543,7 +631,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
       <span class="nav-label">對戰表</span>
     </button>
     <button class="nav-tab" id="nav-admin" onclick="mobileAdminTap()">
-      <span class="nav-icon">⚙</span>
+      <span class="nav-icon">⚙️</span>
       <span class="nav-label">管理者</span>
     </button>
   </div>
@@ -551,7 +639,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
 
 <!-- ══ 抽簽動畫 ══════════════════════════════════════ -->
 <div id="draw-overlay">
-  <div class="draw-spinner"></div>
+  <div class="draw-ring"></div>
   <div class="draw-text">抽簽中…</div>
 </div>
 
@@ -578,27 +666,27 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
   <div class="modal">
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeModal('admin-modal')">✕</button>
-    <h2>⚙ 管理者面板</h2>
+    <h2>⚙️ 管理者面板</h2>
 
     <div class="admin-tabs">
       <div class="admin-tab active" onclick="switchTab(0)">📋 歷史</div>
-      <div class="admin-tab" onclick="switchTab(1)">✏ 編修</div>
+      <div class="admin-tab" onclick="switchTab(1)">✏️ 編修</div>
       <div class="admin-tab" onclick="switchTab(2)">📤 匯出</div>
       <div class="admin-tab" onclick="switchTab(3)">🔑 設定</div>
     </div>
 
-    <!-- Tab 0：歷史記錄 -->
+    <!-- Tab 0：歷史 -->
     <div class="tab-pane active" id="tab-0">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <span style="font-size:12px;color:var(--muted);">點擊記錄可載入對戰表</span>
-        <button class="btn btn-secondary" style="width:auto;padding:6px 12px;font-size:11px;" onclick="loadHistory()">🔄 重新整理</button>
+        <button class="btn btn-secondary" style="width:auto;padding:6px 13px;font-size:11px;" onclick="loadHistory()">🔄 重新整理</button>
       </div>
       <div class="history-list" id="history-list">
         <div class="history-empty">請確認 GAS 連線後載入</div>
       </div>
     </div>
 
-    <!-- Tab 1：編修賽程 -->
+    <!-- Tab 1：編修 -->
     <div class="tab-pane" id="tab-1">
       <div class="field-group">
         <label>活動名稱</label>
@@ -608,7 +696,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
         <label>參賽者名單（每行一位）</label>
         <textarea id="edit-players" style="min-height:120px;" placeholder="修改後需重新抽簽"></textarea>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">⚠ 修改名單後現有勝負記錄將清除，需重新抽簽。</p>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">⚠️ 修改名單後現有勝負記錄將清除，需重新抽簽。</p>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick="applyEdit()">套用修改</button>
         <button class="btn btn-secondary" onclick="closeModal('admin-modal')">取消</button>
@@ -627,7 +715,6 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
 
     <!-- Tab 3：設定 -->
     <div class="tab-pane" id="tab-3">
-      <!-- GAS URL -->
       <div class="gas-field">
         <label>GAS 網址</label>
         <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/…/exec">
@@ -636,8 +723,7 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
           <span id="gas-status-text">未設定</span>
         </div>
       </div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
-      <!-- 密碼 -->
+      <hr class="divider">
       <div class="field-group">
         <label>舊密碼</label>
         <input type="password" id="old-pw" placeholder="目前管理者密碼">
@@ -661,18 +747,16 @@ textarea.text-input { resize:vertical; min-height:120px; line-height:1.8; }
 
 <div id="toast"></div>
 
-<!-- ══ JavaScript ════════════════════════════════════ -->
+<!-- ══ JavaScript（完整保留功能邏輯） ════════════════ -->
 <script>
-// ═══ 常數 ═══════════════════════════════════════════
 const CFG = { pwKey:'bracket_pw', gasKey:'bracket_gas', defaultPw:'admin1234' };
 const DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbyqFwYKASWtla88P8xdzleXldU_5EWBcRjwoG5LGqoahoSfisb7mlfPVKvB_Dwm_k7HYw/exec';
 
-// ═══ 狀態 ═══════════════════════════════════════════
 let state   = { players:[], rounds:[], drawn:false, eventName:'', savedId:null };
 let isAdmin = false;
 let curMobileTab = 'bracket';
 
-// ═══ GAS ════════════════════════════════════════════
+// GAS
 const $gasInput  = document.getElementById('gas-url-input');
 const $gasDotHdr = document.getElementById('gas-dot');
 const $gasDotMod = document.getElementById('gas-dot-modal');
@@ -680,129 +764,100 @@ const $gasStTxt  = document.getElementById('gas-status-text');
 
 function gasUrl() { return localStorage.getItem(CFG.gasKey) || DEFAULT_GAS; }
 function gasSt(txt, cls) {
-  [$gasDotHdr, $gasDotMod].forEach(d => { if(d){ d.className=cls||''; } });
-  if($gasStTxt) $gasStTxt.textContent = txt;
+  [$gasDotHdr,$gasDotMod].forEach(d=>{ if(d) d.className=cls||''; });
+  if($gasStTxt) $gasStTxt.textContent=txt;
 }
-
-// 初始化 GAS
 (()=>{
-  const v = localStorage.getItem(CFG.gasKey) || DEFAULT_GAS;
-  localStorage.setItem(CFG.gasKey, v);
-  if($gasInput) $gasInput.value = v;
+  const v=localStorage.getItem(CFG.gasKey)||DEFAULT_GAS;
+  localStorage.setItem(CFG.gasKey,v);
+  if($gasInput) $gasInput.value=v;
   gasSt('已設定','ok');
 })();
-
-$gasInput && $gasInput.addEventListener('change', ()=>{
-  const v = $gasInput.value.trim();
-  localStorage.setItem(CFG.gasKey, v);
+$gasInput&&$gasInput.addEventListener('change',()=>{
+  localStorage.setItem(CFG.gasKey,$gasInput.value.trim());
   gasSt('已儲存','ok');
 });
 
 async function gasPost(payload) {
   gasSt('傳送中…','ing');
   try {
-    const r = await fetch(gasUrl(), { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
-    const d = await r.json(); gasSt('已連線','ok'); return d;
-  } catch(e) { gasSt('連線失敗','err'); toast('GAS 連線失敗','err'); return null; }
+    const r=await fetch(gasUrl(),{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    const d=await r.json(); gasSt('已連線','ok'); return d;
+  } catch(e){ gasSt('連線失敗','err'); toast('GAS 連線失敗','err'); return null; }
 }
 async function gasGet(params) {
   gasSt('讀取中…','ing');
   try {
-    const r = await fetch(gasUrl()+'?'+new URLSearchParams(params));
-    const d = await r.json(); gasSt('已連線','ok'); return d;
-  } catch(e) { gasSt('連線失敗','err'); toast('GAS 連線失敗','err'); return null; }
+    const r=await fetch(gasUrl()+'?'+new URLSearchParams(params));
+    const d=await r.json(); gasSt('已連線','ok'); return d;
+  } catch(e){ gasSt('連線失敗','err'); toast('GAS 連線失敗','err'); return null; }
 }
 
-// ═══ 工具函數 ════════════════════════════════════════
-const shuffle = a => { const b=[...a]; for(let i=b.length-1;i>0;i--){ const j=~~(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; };
-const pow2    = n => { let p=1; while(p<n) p<<=1; return p; };
-const fmtDt   = d => new Date(d).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-const getPw   = ()=> localStorage.getItem(CFG.pwKey)||CFG.defaultPw;
-const isMobile= ()=> window.innerWidth<=768;
+// 工具
+const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+const pow2=n=>{let p=1;while(p<n)p<<=1;return p;};
+const fmtDt=d=>new Date(d).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+const getPw=()=>localStorage.getItem(CFG.pwKey)||CFG.defaultPw;
+const isMobile=()=>window.innerWidth<=768;
+function $$(id){return document.getElementById(id);}
+function mkEl(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 
-function $$(id) { return document.getElementById(id); }
-function mkEl(tag,cls,txt) { const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
-
-function toast(msg, type='') {
-  const t=$$('toast'); t.textContent=msg; t.className='show '+(type||'');
-  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',2800);
+function toast(msg,type=''){
+  const t=$$('toast');t.textContent=msg;t.className='show '+(type||'');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.className='',2800);
 }
 
-// ═══ 讀取 players（桌面 + 行動版 同步） ═════════════
-function getPlayers() {
-  const src = isMobile() ? $$('m-names-input') : $$('names-input');
-  return src.value.split('\n').map(s=>s.trim()).filter(Boolean);
-}
-function getEventName() {
-  return (isMobile() ? $$('m-event-name') : $$('event-name')).value.trim() || '未命名活動';
+// 讀取輸入
+function getPlayers(){return(isMobile()?$$('m-names-input'):$$('names-input')).value.split('\n').map(s=>s.trim()).filter(Boolean);}
+function getEventName(){return(isMobile()?$$('m-event-name'):$$('event-name')).value.trim()||'未命名活動';}
+
+// 雙向同步
+function syncInputs(fromMobile){
+  if(fromMobile){$$('event-name').value=$$('m-event-name').value;$$('names-input').value=$$('m-names-input').value;}
+  else{$$('m-event-name').value=$$('event-name').value;$$('m-names-input').value=$$('names-input').value;}
 }
 
-// ═══ 雙向同步輸入欄位 ════════════════════════════════
-function syncInputs(fromMobile) {
-  if(fromMobile) {
-    $$('event-name').value  = $$('m-event-name').value;
-    $$('names-input').value = $$('m-names-input').value;
-  } else {
-    $$('m-event-name').value  = $$('event-name').value;
-    $$('m-names-input').value = $$('names-input').value;
-  }
-}
-
-// ═══ 人數顯示 ════════════════════════════════════════
-function updateCount(fromMobile=false) {
+// 人數更新
+function updateCount(fromMobile=false){
   syncInputs(fromMobile);
-  const pl=getPlayers(), n=pl.length;
-
-  // 桌面
-  $$('count-num').textContent = n;
-  $$('draw-btn').disabled = n<2;
-  // 行動
-  $$('m-count-num').textContent = n;
-  $$('m-draw-btn').disabled = n<2;
-
-  if(n>=2) {
-    const sz=pow2(n);
-    const rv=Math.log2(sz)+' 輪', bv=(sz-n)+' 場', mv=(sz-1)+' 場';
-    $$('info-rounds').textContent=rv; $$('info-byes').textContent=bv; $$('info-matches').textContent=mv;
-    $$('m-info-rounds').textContent=rv; $$('m-info-byes').textContent=bv; $$('m-info-matches').textContent=mv;
-    $$('info-grid-wrap').style.display='block';
-    $$('m-info-grid-wrap').style.display='block';
-  } else {
-    $$('info-grid-wrap').style.display='none';
-    $$('m-info-grid-wrap').style.display='none';
-  }
+  const pl=getPlayers(),n=pl.length;
+  $$('count-num').textContent=n; $$('draw-btn').disabled=n<2;
+  $$('m-count-num').textContent=n; $$('m-draw-btn').disabled=n<2;
+  if(n>=2){
+    const sz=pow2(n),rv=Math.log2(sz)+' 輪',bv=(sz-n)+' 場',mv=(sz-1)+' 場';
+    $$('info-rounds').textContent=rv;$$('info-byes').textContent=bv;$$('info-matches').textContent=mv;
+    $$('m-info-rounds').textContent=rv;$$('m-info-byes').textContent=bv;$$('m-info-matches').textContent=mv;
+    $$('info-grid-wrap').style.display='block';$$('m-info-grid-wrap').style.display='block';
+  }else{$$('info-grid-wrap').style.display='none';$$('m-info-grid-wrap').style.display='none';}
 }
 
-// ═══ 賽程邏輯 ════════════════════════════════════════
-function buildBracket(pl) {
+// 賽程
+function buildBracket(pl){
   const sz=pow2(pl.length);
   const seeded=[...pl,...Array(sz-pl.length).fill(null)];
-  const r0=[];
-  for(let i=0;i<seeded.length;i+=2) r0.push({p1:seeded[i],p2:seeded[i+1],winner:null});
-  const rounds=[r0]; let cur=r0.length;
-  while(cur>1){ cur=Math.ceil(cur/2); rounds.push(Array.from({length:cur},()=>({p1:null,p2:null,winner:null}))); }
-  r0.forEach((m,i)=>{ if(m.p2===null){ m.winner=m.p1; propagate(rounds,0,i); } });
+  const r0=[];for(let i=0;i<seeded.length;i+=2)r0.push({p1:seeded[i],p2:seeded[i+1],winner:null});
+  const rounds=[r0];let cur=r0.length;
+  while(cur>1){cur=Math.ceil(cur/2);rounds.push(Array.from({length:cur},()=>({p1:null,p2:null,winner:null})));}
+  r0.forEach((m,i)=>{if(m.p2===null){m.winner=m.p1;propagate(rounds,0,i);}});
   return rounds;
 }
-function propagate(rounds,ri,mi) {
+function propagate(rounds,ri,mi){
   const w=rounds[ri][mi].winner;
-  if(!w||ri+1>=rounds.length) return;
+  if(!w||ri+1>=rounds.length)return;
   rounds[ri+1][~~(mi/2)][mi%2===0?'p1':'p2']=w;
 }
 
-// ═══ 渲染對戰圖 ══════════════════════════════════════
-function render() {
-  const wrap=$$('bracket-wrap'), empty=$$('empty-state');
+// 渲染
+function render(){
+  const wrap=$$('bracket-wrap'),empty=$$('empty-state');
   wrap.innerHTML='';
-  if(!state.drawn){ wrap.style.display='none'; empty.style.display='flex'; return; }
-  wrap.style.display='flex'; empty.style.display='none';
-
-  const R=state.rounds, T=R.length, maxM=R[0].length;
-  const slotH = 80;
+  if(!state.drawn){wrap.style.display='none';empty.style.display='flex';return;}
+  wrap.style.display='flex';empty.style.display='none';
+  const R=state.rounds,T=R.length,maxM=R[0].length;
   const rNames=['第一輪','第二輪','第三輪','第四輪','準決賽','決賽'];
 
   for(let r=0;r<T;r++){
-    const matches=R[r], sh=(maxM/matches.length)*slotH;
+    const matches=R[r],sh=(maxM/matches.length)*80;
     const col=mkEl('div','round-col');
     col.appendChild(mkEl('div','round-header',rNames[r]||`第${r+1}輪`));
     const mc=mkEl('div','matches-col');
@@ -812,145 +867,124 @@ function render() {
       const card=mkEl('div','match-card');
       card.appendChild(makeSlot(m,'p1',r,mi));
       card.appendChild(makeSlot(m,'p2',r,mi));
-      mw.appendChild(card); mc.appendChild(mw);
+      mw.appendChild(card);mc.appendChild(mw);
     });
-    col.appendChild(mc); wrap.appendChild(col);
-    if(r<T-1) wrap.appendChild(makeConn(matches.length,sh));
+    col.appendChild(mc);wrap.appendChild(col);
+    if(r<T-1)wrap.appendChild(makeConn(matches.length,sh));
   }
 
-  // 冠軍
   const cc=mkEl('div','round-col');
   cc.appendChild(mkEl('div','round-header','冠軍'));
-  const cw=mkEl('div'); cw.style.cssText='display:flex;flex:1;align-items:center;';
+  const cw=mkEl('div');cw.style.cssText='display:flex;flex:1;align-items:center;';
   const champion=R[T-1][0]?.winner;
   const box=mkEl('div','champion-box');
   box.innerHTML=`<div class="crown">🏆</div><div class="champ-label">Champion</div><div class="champ-name ${champion?'':'empty'}">${champion||'—'}</div>`;
-  cw.appendChild(box); cc.appendChild(cw); wrap.appendChild(cc);
+  cw.appendChild(box);cc.appendChild(cw);wrap.appendChild(cc);
 
-  if(champion && gasUrl()) autoSave();
-
-  // 行動版：抽完後切換到對戰表
-  if(isMobile()) mobileTab('bracket');
+  if(champion&&gasUrl())autoSave();
+  if(isMobile())mobileTab('bracket');
 }
 
-function makeSlot(m, key, ri, mi) {
-  const s=mkEl('div','slot'), player=m[key];
+function makeSlot(m,key,ri,mi){
+  const s=mkEl('div','slot'),player=m[key];
   const isW=m.winner&&m.winner===player;
   const isL=m.winner&&m.winner!==player&&player;
-  if(isW) s.classList.add('winner');
-  if(isL) s.classList.add('loser');
+  if(isW)s.classList.add('winner');
+  if(isL)s.classList.add('loser');
   const canClick=isAdmin&&m.p1&&m.p2&&!m.winner&&player;
-  if(canClick) s.classList.add('clickable');
+  if(canClick)s.classList.add('clickable');
   const sn=key==='p1'?mi*2+1:mi*2+2;
   s.innerHTML=`<span class="seed">${ri===0?sn:''}</span><span class="player-name ${player?'':'empty'}">${player||'—'}</span>${isW?'<span class="win-arrow">▶</span>':''}`;
-  if(canClick){ s.title=`點擊設定 ${player} 勝出`; s.addEventListener('click',()=>{ m.winner=player; propagate(state.rounds,ri,mi); render(); }); }
+  if(canClick){s.title=`點擊設定 ${player} 勝出`;s.addEventListener('click',()=>{m.winner=player;propagate(state.rounds,ri,mi);render();});}
   return s;
 }
 
-function makeConn(cnt,sh) {
+function makeConn(cnt,sh){
   const col=mkEl('div','connector-col');
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('width','36'); svg.setAttribute('height',cnt*sh+44); svg.style.marginTop='34px';
+  svg.setAttribute('width','36');svg.setAttribute('height',cnt*sh+44);svg.style.marginTop='34px';
   for(let i=0;i<cnt;i+=2){
-    const y1=i*sh+sh/2, y2=(i+1)*sh+sh/2, ym=(y1+y2)/2;
+    const y1=i*sh+sh/2,y2=(i+1)*sh+sh/2,ym=(y1+y2)/2;
     [`M0,${y1} H18 V${ym}`,`M0,${y2} H18 V${ym}`,`M18,${ym} H36`].forEach(d=>{
       const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-      p.setAttribute('d',d); p.setAttribute('fill','none');
-      p.setAttribute('stroke','#2a2a3a'); p.setAttribute('stroke-width','1.5');
+      p.setAttribute('d',d);p.setAttribute('fill','none');
+      p.setAttribute('stroke','#c8c3ba');p.setAttribute('stroke-width','1.5');
       svg.appendChild(p);
     });
   }
-  col.appendChild(svg); return col;
+  col.appendChild(svg);return col;
 }
 
-// ═══ 抽簽 ════════════════════════════════════════════
-function draw() {
-  const pl=getPlayers(); if(pl.length<2) return;
+// 抽簽
+function draw(){
+  const pl=getPlayers();if(pl.length<2)return;
   $$('draw-overlay').classList.add('active');
   setTimeout(()=>{
     const shuffled=shuffle(pl);
-    state={...state, players:shuffled, rounds:buildBracket(shuffled), drawn:true,
-      eventName:getEventName(), savedId:null};
+    state={...state,players:shuffled,rounds:buildBracket(shuffled),drawn:true,eventName:getEventName(),savedId:null};
     $$('draw-overlay').classList.remove('active');
-    render(); setSaveVisible(true);
-    $$('draw-btn').textContent='🎲 重新抽簽';
-    $$('m-draw-btn').textContent='🎲 重新抽簽';
-  }, 900);
+    render();setSaveVisible(true);
+    $$('draw-btn').textContent='🎲 重新抽簽';$$('m-draw-btn').textContent='🎲 重新抽簽';
+  },900);
+}
+function reset(){
+  state.drawn=false;state.rounds=[];state.savedId=null;render();setSaveVisible(false);
+  $$('draw-btn').textContent='🎲 開始抽簽';$$('m-draw-btn').textContent='🎲 開始抽簽';
+}
+function setSaveVisible(v){
+  ['reset-btn','save-btn','m-reset-btn','m-save-btn'].forEach(id=>{$$(id).style.display=v?'block':'none';});
 }
 
-function reset() {
-  state.drawn=false; state.rounds=[]; state.savedId=null; render();
-  setSaveVisible(false);
-  $$('draw-btn').textContent='🎲 開始抽簽';
-  $$('m-draw-btn').textContent='🎲 開始抽簽';
-}
-
-function setSaveVisible(v) {
-  ['reset-btn','save-btn','m-reset-btn','m-save-btn'].forEach((id,i)=>{
-    $$(id).style.display = v ? 'block' : 'none';
-  });
-}
-
-// ═══ GAS 儲存 ════════════════════════════════════════
+// GAS 儲存
 let autoSaving=false;
-async function autoSave(){ if(autoSaving)return; autoSaving=true; await saveToSheet(true); autoSaving=false; }
-
-async function saveToSheet(silent=false) {
-  if(!state.drawn) return;
+async function autoSave(){if(autoSaving)return;autoSaving=true;await saveToSheet(true);autoSaving=false;}
+async function saveToSheet(silent=false){
+  if(!state.drawn)return;
   const champion=state.rounds[state.rounds.length-1][0]?.winner||'';
-  const payload={ action:'save', id:state.savedId,
-    eventName:state.eventName, players:state.players.join(','), champion,
-    rounds:JSON.stringify(state.rounds), timestamp:new Date().toISOString() };
+  const payload={action:'save',id:state.savedId,eventName:state.eventName,players:state.players.join(','),champion,rounds:JSON.stringify(state.rounds),timestamp:new Date().toISOString()};
   const res=await gasPost(payload);
-  if(res?.ok){ state.savedId=res.id; if(!silent) toast('✅ 儲存成功（列 '+res.row+'）','ok'); }
-  else if(!silent&&res) toast('❌ 儲存失敗：'+(res.error||'未知'),'err');
+  if(res?.ok){state.savedId=res.id;if(!silent)toast('✅ 儲存成功（列 '+res.row+'）','ok');}
+  else if(!silent&&res)toast('❌ 儲存失敗：'+(res.error||'未知'),'err');
 }
 
-// ═══ 管理者 ══════════════════════════════════════════
-$$('admin-btn').addEventListener('click',()=>{ if(isAdmin) openAdminPanel(); else openModal('login-modal'); });
-
-function adminLogin() {
+// 管理者
+$$('admin-btn').addEventListener('click',()=>{if(isAdmin)openAdminPanel();else openModal('login-modal');});
+function adminLogin(){
   if($$('admin-pw').value===getPw()){
-    isAdmin=true; $$('admin-pw').value=''; $$('login-err').textContent='';
+    isAdmin=true;$$('admin-pw').value='';$$('login-err').textContent='';
     closeModal('login-modal');
-    $$('admin-btn').classList.add('active'); $$('admin-btn').textContent='⚙ 管理者';
-    // 更新行動版 nav
-    $$('nav-admin').querySelector('.nav-label').textContent='⚙ 已登入';
-    toast('管理者模式已啟用','ok'); render(); openAdminPanel();
-  } else { $$('login-err').textContent='密碼錯誤'; }
+    $$('admin-btn').classList.add('active');$$('admin-btn').textContent='⚙️ 管理者';
+    $$('nav-admin').querySelector('.nav-label').textContent='已登入';
+    toast('管理者模式已啟用','ok');render();openAdminPanel();
+  }else{$$('login-err').textContent='密碼錯誤';}
 }
-function adminLogout() {
-  isAdmin=false; closeModal('admin-modal');
-  $$('admin-btn').classList.remove('active'); $$('admin-btn').textContent='🔐 管理者';
+function adminLogout(){
+  isAdmin=false;closeModal('admin-modal');
+  $$('admin-btn').classList.remove('active');$$('admin-btn').textContent='🔐 管理者';
   $$('nav-admin').querySelector('.nav-label').textContent='管理者';
-  render(); toast('已登出管理者模式');
+  render();toast('已登出管理者模式');
 }
-function openAdminPanel() {
+function openAdminPanel(){
   $$('edit-event-name').value=state.eventName||getEventName();
   $$('edit-players').value=state.players.join('\n');
-  // 同步 GAS 輸入
   $$('gas-url-input').value=gasUrl();
-  openModal('admin-modal'); switchTab(0); loadHistory();
+  openModal('admin-modal');switchTab(0);loadHistory();
 }
-function applyEdit() {
+function applyEdit(){
   const name=$$('edit-event-name').value.trim();
   const pl=$$('edit-players').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(name){ state.eventName=name; $$('event-name').value=name; $$('m-event-name').value=name; }
-  if(pl.length>=2){
-    $$('names-input').value=pl.join('\n');
-    $$('m-names-input').value=pl.join('\n');
-    updateCount();
-  }
-  closeModal('admin-modal'); toast('已套用，請重新抽簽以更新對戰表');
+  if(name){state.eventName=name;$$('event-name').value=name;$$('m-event-name').value=name;}
+  if(pl.length>=2){$$('names-input').value=pl.join('\n');$$('m-names-input').value=pl.join('\n');updateCount();}
+  closeModal('admin-modal');toast('已套用，請重新抽簽以更新對戰表');
 }
 
-// ═══ 歷史記錄 ════════════════════════════════════════
-async function loadHistory() {
+// 歷史
+async function loadHistory(){
   const list=$$('history-list');
   list.innerHTML='<div class="history-empty">載入中…</div>';
   const data=await gasGet({action:'list'});
-  if(!data?.records){ list.innerHTML='<div class="history-empty">無法取得資料，請確認 GAS 網址</div>'; return; }
-  if(!data.records.length){ list.innerHTML='<div class="history-empty">尚無歷史記錄</div>'; return; }
+  if(!data?.records){list.innerHTML='<div class="history-empty">無法取得資料，請確認 GAS 網址</div>';return;}
+  if(!data.records.length){list.innerHTML='<div class="history-empty">尚無歷史記錄</div>';return;}
   list.innerHTML='';
   [...data.records].reverse().forEach(rec=>{
     const item=mkEl('div','history-item');
@@ -959,115 +993,99 @@ async function loadHistory() {
     list.appendChild(item);
   });
 }
-function loadRecord(rec) {
-  try {
+function loadRecord(rec){
+  try{
     state.players=(rec.players||'').split(',').filter(Boolean);
     state.rounds=JSON.parse(rec.rounds);
-    state.eventName=rec.eventName||''; state.drawn=true; state.savedId=rec.id;
-    $$('event-name').value=state.eventName; $$('m-event-name').value=state.eventName;
-    $$('names-input').value=state.players.join('\n'); $$('m-names-input').value=state.players.join('\n');
-    updateCount(); closeModal('admin-modal'); render(); setSaveVisible(true);
-    $$('draw-btn').textContent='🎲 重新抽簽'; $$('m-draw-btn').textContent='🎲 重新抽簽';
+    state.eventName=rec.eventName||'';state.drawn=true;state.savedId=rec.id;
+    $$('event-name').value=state.eventName;$$('m-event-name').value=state.eventName;
+    $$('names-input').value=state.players.join('\n');$$('m-names-input').value=state.players.join('\n');
+    updateCount();closeModal('admin-modal');render();setSaveVisible(true);
+    $$('draw-btn').textContent='🎲 重新抽簽';$$('m-draw-btn').textContent='🎲 重新抽簽';
     toast('已載入：'+(rec.eventName||'記錄'));
-  } catch(e){ toast('載入失敗：'+e.message,'err'); }
+  }catch(e){toast('載入失敗：'+e.message,'err');}
 }
 
-// ═══ 匯出 ════════════════════════════════════════════
+// 匯出
 function exportCSV(){
-  if(!state.drawn){ toast('尚無對戰資料','err'); return; }
+  if(!state.drawn){toast('尚無對戰資料','err');return;}
   const rN=['第一輪','第二輪','第三輪','第四輪','準決賽','決賽'];
   const rows=[['輪次','場次','選手A','選手B','勝者']];
   state.rounds.forEach((rd,ri)=>rd.forEach((m,mi)=>rows.push([rN[ri]||`第${ri+1}輪`,mi+1,m.p1||'',m.p2||'',m.winner||''])));
-  const c=state.rounds[state.rounds.length-1][0]?.winner; if(c) rows.push(['','','🏆 冠軍',c,'']);
+  const c=state.rounds[state.rounds.length-1][0]?.winner;if(c)rows.push(['','','🏆 冠軍',c,'']);
   dlCSV(rows,(state.eventName||'bracket')+'_賽程.csv');
 }
 async function exportAllCSV(){
   const data=await gasGet({action:'list'});
-  if(!data?.records?.length){ toast('無歷史資料','err'); return; }
+  if(!data?.records?.length){toast('無歷史資料','err');return;}
   const rows=[['ID','活動名稱','時間','參賽者','冠軍']];
   data.records.forEach(r=>rows.push([r.id||'',r.eventName||'',fmtDt(r.timestamp),r.players||'',r.champion||'']));
   dlCSV(rows,'所有賽程記錄.csv');
 }
 function exportJSON(){
-  if(!state.drawn){ toast('尚無對戰資料','err'); return; }
+  if(!state.drawn){toast('尚無對戰資料','err');return;}
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify({eventName:state.eventName,players:state.players,rounds:state.rounds},null,2)],{type:'application/json'}));
-  a.download=(state.eventName||'bracket')+'.json'; a.click(); toast('JSON 已匯出','ok');
+  a.download=(state.eventName||'bracket')+'.json';a.click();toast('JSON 已匯出','ok');
 }
 function dlCSV(rows,fname){
   const csv='\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download=fname; a.click(); toast('CSV 已匯出','ok');
+  a.download=fname;a.click();toast('CSV 已匯出','ok');
 }
 
-// ═══ 密碼 ════════════════════════════════════════════
+// 密碼
 function changePw(){
-  const ov=$$('old-pw').value, nv=$$('new-pw').value, nv2=$$('new-pw2').value, ee=$$('pw-err');
-  if(ov!==getPw()){ ee.textContent='舊密碼錯誤'; return; }
-  if(nv.length<4)  { ee.textContent='新密碼至少 4 字元'; return; }
-  if(nv!==nv2)     { ee.textContent='兩次不一致'; return; }
-  localStorage.setItem(CFG.pwKey,nv); ee.textContent='';
+  const ov=$$('old-pw').value,nv=$$('new-pw').value,nv2=$$('new-pw2').value,ee=$$('pw-err');
+  if(ov!==getPw()){ee.textContent='舊密碼錯誤';return;}
+  if(nv.length<4){ee.textContent='新密碼至少 4 字元';return;}
+  if(nv!==nv2){ee.textContent='兩次不一致';return;}
+  localStorage.setItem(CFG.pwKey,nv);ee.textContent='';
   ['old-pw','new-pw','new-pw2'].forEach(id=>$$(id).value='');
   toast('✅ 密碼已更新','ok');
 }
 
-// ═══ Modal / Tab ═════════════════════════════════════
-function openModal(id) { $$(id).classList.add('active'); document.body.style.overflow='hidden'; }
-function closeModal(id){ $$(id).classList.remove('active'); document.body.style.overflow=''; }
+// Modal / Tab
+function openModal(id){$$(id).classList.add('active');document.body.style.overflow='hidden';}
+function closeModal(id){$$(id).classList.remove('active');document.body.style.overflow='';}
 function switchTab(idx){
   document.querySelectorAll('.tab-pane').forEach((p,i)=>p.classList.toggle('active',i===idx));
   document.querySelectorAll('.admin-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
 }
 
-// ═══ 行動版 Tab 切換 ══════════════════════════════════
-function mobileTab(tab) {
-  curMobileTab = tab;
-  $$('mobile-setup').style.display  = tab==='setup'   ? 'flex' : 'none';
-  $$('bracket-pane').style.display  = tab==='bracket' ? 'block': 'none';
-  // nav active
-  ['setup','bracket'].forEach(t=> $$('nav-'+t)?.classList.toggle('active',t===tab));
+// 行動版 Tab
+function mobileTab(tab){
+  curMobileTab=tab;
+  $$('mobile-setup').style.display=tab==='setup'?'flex':'none';
+  $$('bracket-pane').style.display=tab==='bracket'?'block':'none';
+  ['setup','bracket'].forEach(t=>$$('nav-'+t)?.classList.toggle('active',t===tab));
   $$('nav-admin').classList.remove('active');
 }
+function mobileAdminTap(){if(isAdmin)openAdminPanel();else openModal('login-modal');}
 
-function mobileAdminTap(){
-  if(isAdmin) openAdminPanel();
-  else openModal('login-modal');
-}
-
-// ═══ 事件綁定 ═════════════════════════════════════════
-// 桌面
-$$('names-input').addEventListener('input', ()=>updateCount(false));
-$$('event-name').addEventListener('input',  ()=>syncInputs(false));
-$$('draw-btn').addEventListener('click', draw);
-$$('reset-btn').addEventListener('click', reset);
-$$('save-btn').addEventListener('click', ()=>saveToSheet(false));
-$$('clear-btn').addEventListener('click', ()=>{
-  $$('names-input').value=''; $$('event-name').value='';
-  $$('m-names-input').value=''; $$('m-event-name').value='';
-  reset(); updateCount();
+// 事件
+$$('names-input').addEventListener('input',()=>updateCount(false));
+$$('event-name').addEventListener('input',()=>syncInputs(false));
+$$('draw-btn').addEventListener('click',draw);
+$$('reset-btn').addEventListener('click',reset);
+$$('save-btn').addEventListener('click',()=>saveToSheet(false));
+$$('clear-btn').addEventListener('click',()=>{
+  $$('names-input').value='';$$('event-name').value='';$$('m-names-input').value='';$$('m-event-name').value='';
+  reset();updateCount();
 });
-
-// 行動版
-$$('m-names-input').addEventListener('input', ()=>updateCount(true));
-$$('m-event-name').addEventListener('input',  ()=>syncInputs(true));
-$$('m-draw-btn').addEventListener('click', draw);
-$$('m-reset-btn').addEventListener('click', reset);
-$$('m-save-btn').addEventListener('click', ()=>saveToSheet(false));
-$$('m-clear-btn').addEventListener('click', ()=>{
-  $$('names-input').value=''; $$('event-name').value='';
-  $$('m-names-input').value=''; $$('m-event-name').value='';
-  reset(); updateCount();
+$$('m-names-input').addEventListener('input',()=>updateCount(true));
+$$('m-event-name').addEventListener('input',()=>syncInputs(true));
+$$('m-draw-btn').addEventListener('click',draw);
+$$('m-reset-btn').addEventListener('click',reset);
+$$('m-save-btn').addEventListener('click',()=>saveToSheet(false));
+$$('m-clear-btn').addEventListener('click',()=>{
+  $$('names-input').value='';$$('event-name').value='';$$('m-names-input').value='';$$('m-event-name').value='';
+  reset();updateCount();
 });
+$$('admin-pw').addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)closeModal(bg.id);}));
 
-// Enter 登入
-$$('admin-pw').addEventListener('keydown', e=>{ if(e.key==='Enter') adminLogin(); });
-
-// 點背景關閉 Modal
-document.querySelectorAll('.modal-bg').forEach(bg=>
-  bg.addEventListener('click', e=>{ if(e.target===bg){ closeModal(bg.id); } }));
-
-// ═══ 初始 tab（行動版預設對戰表） ═══════════════════
 mobileTab('bracket');
 updateCount();
 </script>
