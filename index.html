@@ -768,7 +768,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
 
 <!-- ══ JavaScript（完整保留功能邏輯） ════════════════ -->
 <script>
-const CFG = { pwKey:'bracket_pw', gasKey:'bracket_gas', defaultPw:'admin1234' };
+const CFG = { gasKey:'bracket_gas' };  // 密碼改雲端，不存本機
 const DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbyqFwYKASWtla88P8xdzleXldU_5EWBcRjwoG5LGqoahoSfisb7mlfPVKvB_Dwm_k7HYw/exec';
 
 let state   = { players:[], rounds:[], drawn:false, eventName:'', savedId:null };
@@ -816,7 +816,7 @@ async function gasGet(params) {
 const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
 const pow2=n=>{let p=1;while(p<n)p<<=1;return p;};
 const fmtDt=d=>new Date(d).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-const getPw=()=>localStorage.getItem(CFG.pwKey)||CFG.defaultPw;
+// 密碼改為雲端驗證，不在本機儲存
 const isMobile=()=>window.innerWidth<=768;
 function $$(id){return document.getElementById(id);}
 function mkEl(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
@@ -968,15 +968,30 @@ async function saveToSheet(silent=false){
 
 // 管理者
 $$('admin-btn').addEventListener('click',()=>{if(isAdmin)openAdminPanel();else openModal('login-modal');});
-function adminLogin(){
-  if($$('admin-pw').value===getPw()){
-    isAdmin=true;$$('admin-pw').value='';$$('login-err').textContent='';
-    closeModal('login-modal');
-    $$('admin-btn').classList.add('active');$$('admin-btn').textContent='⚙️ 管理者';
-    $$('nav-admin').querySelector('.nav-label').textContent='已登入';
-    toast('管理者模式已啟用','ok');render();openAdminPanel();
-  }else{$$('login-err').textContent='密碼錯誤';}
+
+async function adminLogin(){
+  const pw=$$('admin-pw').value;
+  if(!pw){$$('login-err').textContent='請輸入密碼';return;}
+  const btn=$$('login-modal').querySelector('.btn-primary');
+  btn.disabled=true; btn.textContent='驗證中…';
+  $$('login-err').textContent='';
+  let ok=false;
+  try{
+    const res=await gasGet({action:'verifyPw',pw});
+    if(res?.ok){ ok=true; }
+    else{ $$('login-err').textContent=res?.error||'密碼錯誤'; }
+  }catch(e){
+    $$('login-err').textContent='GAS 連線失敗，請確認網址';
+  }
+  btn.disabled=false; btn.textContent='登入';
+  if(!ok) return;
+  isAdmin=true; $$('admin-pw').value='';
+  closeModal('login-modal');
+  $$('admin-btn').classList.add('active'); $$('admin-btn').textContent='⚙️ 管理者';
+  $$('nav-admin').querySelector('.nav-label').textContent='已登入';
+  toast('管理者模式已啟用','ok'); render(); openAdminPanel();
 }
+
 function adminLogout(){
   isAdmin=false;closeModal('admin-modal');
   $$('admin-btn').classList.remove('active');$$('admin-btn').textContent='🔐 管理者';
@@ -1092,15 +1107,24 @@ function dlCSV(rows,fname){
   a.download=fname;a.click();toast('CSV 已匯出','ok');
 }
 
-// 密碼
-function changePw(){
+// 密碼（雲端）
+async function changePw(){
   const ov=$$('old-pw').value,nv=$$('new-pw').value,nv2=$$('new-pw2').value,ee=$$('pw-err');
-  if(ov!==getPw()){ee.textContent='舊密碼錯誤';return;}
+  ee.textContent='';
+  if(!ov){ee.textContent='請輸入舊密碼';return;}
   if(nv.length<4){ee.textContent='新密碼至少 4 字元';return;}
-  if(nv!==nv2){ee.textContent='兩次不一致';return;}
-  localStorage.setItem(CFG.pwKey,nv);ee.textContent='';
-  ['old-pw','new-pw','new-pw2'].forEach(id=>$$(id).value='');
-  toast('✅ 密碼已更新','ok');
+  if(nv!==nv2){ee.textContent='兩次輸入不一致';return;}
+  const btn=$$('pw-err').closest('.tab-pane').querySelector('.btn-primary');
+  btn.disabled=true; btn.textContent='更新中…';
+  const res=await gasPost({action:'changePw',oldPw:ov,newPw:nv});
+  btn.disabled=false; btn.textContent='更新密碼';
+  if(res?.ok){
+    ee.textContent='';
+    ['old-pw','new-pw','new-pw2'].forEach(id=>$$(id).value='');
+    toast('✅ 密碼已更新（已寫入雲端）','ok');
+  }else{
+    ee.textContent=res?.error||'更新失敗，請確認 GAS 連線';
+  }
 }
 
 // Modal / Tab
