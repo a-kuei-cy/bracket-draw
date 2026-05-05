@@ -948,7 +948,7 @@ function render(){
   wrap.innerHTML='';
   if(!state.drawn){wrap.style.display='none';empty.style.display='flex';return;}
   wrap.style.display='flex';empty.style.display='none';
-  const R=state.rounds,T=R.length,maxM=R[0].length;
+  const R=state.rounds,T=R.length,maxM=Math.max(...R.map(r=>r.length));
   // 動態輪次名稱：根據實際 rounds 長度決定
   const totalRoundCount = R.length;
   const allNames = ['第一輪','第二輪','第三輪','第四輪','準決賽','決賽','冠軍賽'];
