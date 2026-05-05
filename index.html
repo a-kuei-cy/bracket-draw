@@ -860,63 +860,131 @@ function updateCount(fromMobile=false){
 }
 
 // 賽程
-// ══ 單淘汰賽程建立（緊湊型）══════════════════════════════
+// ══ 單淘汰賽程建立 ══════════════════════════════════════
+// 結構：rounds[0] 為第一輪（half 個場次）
+//   - 直晉場次：p1=選手, p2=null, winner=選手, isBye=true
+//   - 對打場次：p1=選手A, p2=選手B, winner=null
+// rounds[1..] 為後續輪次（空殼，等待晉級）
 function buildBracket(pl) {
   const n = pl.length;
   if(n === 1) {
-    return [[{ p1:pl[0], p2:null, winner:pl[0], seedA:1, seedB:null }]];
+    return [[{ p1:pl[0], p2:null, winner:pl[0], seedA:1, seedB:null, isBye:true }]];
   }
 
   const sz   = pow2(n);
-  const half = sz / 2;
-  const byes = sz - n;   // 直接晉級人數
-  const r1n  = n - half; // 第一輪對打場數
+  const half = sz / 2;     // 第一輪場數
+  const byes = sz - n;     // 直接晉級人數
+  const r1n  = n - half;   // 第一輪對打場數
 
-  // ── 第一輪：低種子兩兩對打 ───────────────────────────
-  const r1 = [];
-  for(let i = 0; i < r1n; i++) {
-    const sA = byes + 1 + i;
-    const sB = n - i;
-    r1.push({ p1:pl[sA-1], p2:pl[sB-1], winner:null, seedA:sA, seedB:sB });
+  // ── 建立第一輪 half 個場次 ─────────────────────────────
+  // 交錯安排：種子1, r1對打場1, 種子2, r1對打場2, ...
+  // 多餘的種子互相配對（都是直晉，但放在同一場）
+  const slots = [];
+  let bi=0, ri_=0;
+  while(slots.length < half*2) {  // half 場 × 2 個選手
+    if(bi < byes)  { slots.push({ type:'bye', seed: bi+1, player: pl[bi] }); bi++; }
+    if(slots.length < half*2 && ri_ < r1n) { slots.push({ type:'r1a', r1idx: ri_ }); }
+    if(slots.length < half*2 && ri_ < r1n) { slots.push({ type:'r1b', r1idx: ri_ }); ri_++; }
   }
 
-  // ── 建立後續輪次空殼 ─────────────────────────────────
-  const rounds = [];
-  if(r1n > 0) rounds.push(r1);
+  // 建立 r1 對打選手清單
+  const r1Players = [];
+  for(let i=0; i<r1n; i++) {
+    const sA = byes+1+i, sB = n-i;
+    r1Players.push({ pA: pl[sA-1], pB: pl[sB-1], sA, sB });
+  }
+
+  // 從 slots 建立第一輪場次
+  const round0 = [];
+  const r1PropT = [];  // 對打場次 → 第二輪的 propagate 目標
+
+  for(let mi=0; mi<half; mi++) {
+    const s1 = slots[mi*2];
+    const s2 = slots[mi*2+1];
+    if(!s1 || !s2) break;
+
+    const getPlayer = (s) => s.type==='bye' ? s.player : (s.type==='r1a' ? r1Players[s.r1idx].pA : r1Players[s.r1idx].pB);
+    const getSeed   = (s) => s.type==='bye' ? s.seed   : (s.type==='r1a' ? r1Players[s.r1idx].sA : r1Players[s.r1idx].sB);
+
+    if(s1.type==='bye' && s2.type==='bye') {
+      // 兩個直晉種子配對 → 第一輪直接對打（種子互相比）
+      // 或者其中一人先視為輪空晉級，再和另一人在第二輪配對
+      // 實際上若兩個直晉種子在同一場，他們要在第二輪才對打 → 分開顯示
+      // 解法：直晉種子「單獨一格」，不和對手配對
+      round0.push({ p1:s1.player, p2:null, winner:s1.player, seedA:s1.seed, seedB:null, isBye:true });
+      round0.push({ p1:s2.player, p2:null, winner:s2.player, seedA:s2.seed, seedB:null, isBye:true });
+    } else if(s1.type==='bye' && (s2.type==='r1a'||s2.type==='r1b')) {
+      // 直晉種子 + 對打場次的選手A或B → 不組在一起，直晉單獨放
+      // 這樣會破壞 half 個場次的結構...
+      // 改為：直晉直接佔一格，對打場次佔一格
+      round0.push({ p1:s1.player, p2:null, winner:s1.player, seedA:s1.seed, seedB:null, isBye:true });
+      // 對打場次
+      const rp = r1Players[s2.r1idx];
+      const m = { p1:rp.pA, p2:rp.pB, winner:null, seedA:rp.sA, seedB:rp.sB, isBye:false };
+      r1PropT.push({ matchIdx: round0.length, nextMi: Math.floor(round0.length/2) });
+      round0.push(m);
+    } else {
+      // 兩個都是對打選手
+      const rp = r1Players[s1.r1idx];
+      round0.push({ p1:rp.pA, p2:rp.pB, winner:null, seedA:rp.sA, seedB:rp.sB, isBye:false });
+    }
+  }
+
+  // 上面的邏輯太複雜且容易出錯，換成最直接的方式：
+  // 第一輪 = half 個「格子」（不是場次），每格一個選手
+  // 直晉種子直接填格，對打選手兩人一格（對打場次）
+  // 這樣第一輪就是混合「單人格」和「雙人格」的列
+
+  // ── 最終清晰方案：標準結構 ─────────────────────────────
+  // 第一輪有 half 個「槽位」，每個槽位可以是：
+  //   byeSlot: 一個直晉選手，自動成為勝者
+  //   matchSlot: 兩個選手對打
+  // 使用 _slot 陣列來記錄，render 時特殊處理
+
+  // 重新建構：清晰版
+  const r0Slots = [];  // half 個元素
+  let byi=0, r1i=0;
+  for(let s=0; s<half; s++) {
+    if(byi<byes && (r1i>=r1n || byi<=r1i)) {
+      r0Slots.push({ type:'bye', player:pl[byi], seed:byi+1 }); byi++;
+    } else if(r1i<r1n) {
+      const rp = r1Players[r1i];
+      r0Slots.push({ type:'match', p1:rp.pA, p2:rp.pB, sA:rp.sA, sB:rp.sB }); r1i++;
+    } else {
+      r0Slots.push({ type:'bye', player:pl[byi], seed:byi+1 }); byi++;
+    }
+  }
+
+  // 轉換成 round 格式（match 用兩格，bye 用一格）
+  // 但為了讓 render 統一處理，統一用「場次」概念
+  // bye slot → { p1:選手, p2:null, winner:選手, isBye:true }
+  // match slot → { p1:選手A, p2:選手B, winner:null, isBye:false }
+  const round0Final = r0Slots.map(s => {
+    if(s.type==='bye') {
+      return { p1:s.player, p2:null, winner:s.player, seedA:s.seed, seedB:null, isBye:true };
+    } else {
+      return { p1:s.p1, p2:s.p2, winner:null, seedA:s.sA, seedB:s.sB, isBye:false };
+    }
+  });
+
+  // 建立後續輪次
+  const rounds = [round0Final];
   let cur = half / 2;
   while(cur >= 1) {
     rounds.push(Array.from({length:cur}, ()=>({ p1:null, p2:null, winner:null })));
     cur = Math.floor(cur / 2);
   }
 
-  const r2idx = r1n > 0 ? 1 : 0;
-  if(r2idx >= rounds.length) return rounds;
-  const r2 = rounds[r2idx];
-
-  // ── 填入第二輪 ───────────────────────────────────────
-  // 交錯排列 half 個 slot：種子1, r1場1勝, 種子2, r1場2勝, ...
-  // 若種子多於 r1 場：多餘種子繼續填（互相配對）
-  // 若 r1 場多於種子：多餘 r1 勝者繼續填（互相配對）
-  const slots = [];  // 長度 = half，記錄每個 slot 的來源
-  let bi = 0, ri = 0;
-  while(slots.length < half) {
-    if(bi < byes)  { slots.push({ type:'bye', idx:bi++ }); }
-    if(slots.length < half && ri < r1n) { slots.push({ type:'r1', idx:ri++ }); }
-  }
-
-  const r1PropT = [];  // 記錄 r1[i] 應 propagate 到哪
-  slots.forEach((s, slotIdx) => {
-    const mi  = Math.floor(slotIdx / 2);
-    const key = slotIdx % 2 === 0 ? 'p1' : 'p2';
-    if(s.type === 'bye') {
-      r2[mi][key] = pl[s.idx];
-    } else {
-      r1PropT.push({ mi, key });
+  // 第一輪 slot → 第二輪 propagate 對應
+  // round0Final 中每個 slot（下標 i）的勝者，進入 rounds[1][floor(i/2)] 的 p1 或 p2
+  round0Final.forEach((m, i) => {
+    m._nextRi  = 1;
+    m._nextMi  = Math.floor(i / 2);
+    m._nextKey = i % 2 === 0 ? 'p1' : 'p2';
+    // 直晉者立即 propagate
+    if(m.isBye && m.winner && rounds[1] && rounds[1][m._nextMi]) {
+      rounds[1][m._nextMi][m._nextKey] = m.winner;
     }
-  });
-
-  r1.forEach((m, i) => {
-    if(r1PropT[i]) { m._r2mi = r1PropT[i].mi; m._r2key = r1PropT[i].key; }
   });
 
   return rounds;
@@ -927,15 +995,9 @@ function propagate(rounds, ri, mi) {
   const m = rounds[ri][mi];
   const w = m.winner;
   if(!w) return;
-  if(ri === 0 && m._r2mi !== undefined && rounds.length > 1) {
-    const r2 = rounds[1];
-    if(r2 && r2[m._r2mi]) r2[m._r2mi][m._r2key] = w;
-    return;
-  }
-  const nextRi = ri + 1;
-  if(nextRi >= rounds.length) return;
-  const nextMi  = Math.floor(mi / 2);
-  const nextKey = mi % 2 === 0 ? 'p1' : 'p2';
+  const nextRi  = m._nextRi  !== undefined ? m._nextRi  : ri + 1;
+  const nextMi  = m._nextMi  !== undefined ? m._nextMi  : Math.floor(mi / 2);
+  const nextKey = m._nextKey !== undefined ? m._nextKey : (mi % 2 === 0 ? 'p1' : 'p2');
   if(rounds[nextRi] && rounds[nextRi][nextMi]) {
     rounds[nextRi][nextMi][nextKey] = w;
   }
@@ -969,7 +1031,8 @@ function render(){
       mw.style.cssText=`height:${sh}px;animation-delay:${r*.04+mi*.025}s`;
       const card=mkEl('div','match-card');
       card.appendChild(makeSlot(m,'p1',r,mi));
-      card.appendChild(makeSlot(m,'p2',r,mi));
+      if(!m.isBye) card.appendChild(makeSlot(m,'p2',r,mi));
+      if(m.isBye) card.style.cssText='border-color:rgba(59,91,219,.15);background:var(--blue-lt);';
       mw.appendChild(card);mc.appendChild(mw);
     });
     col.appendChild(mc);wrap.appendChild(col);
@@ -1000,7 +1063,7 @@ function makeSlot(m,key,ri,mi){
   if(isL)s.classList.add('loser');
   const canClick=isAdmin&&m.p1&&m.p2&&!m.winner&&player;
   if(canClick)s.classList.add('clickable');
-  const sn = ri===0 ? (key==='p1' ? (m.seedA||'') : (m.seedB||'')) : '';
+  const sn = ri===0 ? (key==='p1' ? (m.seedA||'') : (m.isBye ? '' : (m.seedB||''))) : '';
   s.innerHTML=`<span class="seed">${sn}</span><span class="player-name ${player?'':' empty'}">${player||'—'}</span>${isW?'<span class="win-arrow">▶</span>':''}`;
   if(canClick){s.title=`點擊設定 ${player} 勝出`;s.addEventListener('click',()=>{m.winner=player;propagate(state.rounds,ri,mi);render();});}
   return s;
@@ -1035,13 +1098,11 @@ function makeConn(srcMatches, srcSh, dstSh, dstCnt){
   // 記錄每個目的 match 有哪些來源 Y 要連過去
   const dstGroups = {};
   srcMatches.forEach((m, si) => {
-    // 目的 matchIdx
+    // 目的 matchIdx：優先用 _nextMi（新版），其次 _r2mi（舊版），最後預設
     let dmi;
-    if(m._r2mi !== undefined) {
-      dmi = m._r2mi;
-    } else {
-      dmi = Math.floor(si / 2);
-    }
+    if(m._nextMi !== undefined)     dmi = m._nextMi;
+    else if(m._r2mi !== undefined)  dmi = m._r2mi;
+    else                            dmi = Math.floor(si / 2);
     if(!dstGroups[dmi]) dstGroups[dmi] = [];
     dstGroups[dmi].push(srcY(si));
   });
