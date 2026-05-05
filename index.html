@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>單淘汰賽抽簽系統</title>
 <style>
-@import url('https://script.google.com/macros/s/AKfycbzgvYcs2Kwj2uL7seQrFHrQTRpLTllNV2Z4Ev-7i-RyzyrbSubRo1BwQ5An-odgvsMo/exec');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@700;900&display=swap');
 
 /* ══ 色彩系統（暖白 × 靛藍 × 琥珀） ══════════════════ */
 :root {
@@ -716,12 +716,21 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
 
     <!-- Tab 2：匯出 -->
     <div class="tab-pane" id="tab-2">
+      <!-- 備份 -->
+      <div class="export-group">
+        <div class="export-group-title">🛡️ 雲端備份</div>
+        <button class="btn btn-amber" onclick="backupNow()" id="backup-btn">📦 立即備份試算表資料</button>
+        <div id="backup-result" style="display:none;font-size:12px;color:var(--green);margin-top:2px;padding:8px 12px;background:var(--green-lt);border-radius:8px;"></div>
+      </div>
+      <hr class="divider">
+      <!-- 分組表 -->
       <div class="export-group">
         <div class="export-group-title">📊 Google 試算表分組表</div>
         <button class="btn btn-primary" onclick="genBracketSheet()" id="gen-sheet-btn">✨ 產生分組表（寫入試算表）</button>
         <div id="gen-sheet-result" class="gen-result" style="display:none;"></div>
       </div>
       <hr class="divider">
+      <!-- 本機下載 -->
       <div class="export-group">
         <div class="export-group-title">💾 本機下載</div>
         <button class="btn btn-secondary" onclick="exportCSV()">📥 當前賽程 CSV（本機產生）</button>
@@ -729,7 +738,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
         <button class="btn btn-secondary" onclick="exportBracketFromGAS()">📥 當前賽程 CSV（從 GAS）</button>
         <button class="btn btn-secondary" onclick="exportAllCSV()">📥 所有賽程歷史 CSV（從 GAS）</button>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:8px;">「從 GAS」需已設定 GAS 網址且已儲存資料。</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;">備份會在試算表建立「備份_賽程記錄_時間」工作表。</p>
     </div>
 
     <!-- Tab 3：設定 -->
@@ -851,20 +860,87 @@ function updateCount(fromMobile=false){
 }
 
 // 賽程
-function buildBracket(pl){
-  const sz=pow2(pl.length);
-  const seeded=[...pl,...Array(sz-pl.length).fill(null)];
-  const r0=[];for(let i=0;i<seeded.length;i+=2)r0.push({p1:seeded[i],p2:seeded[i+1],winner:null});
-  const rounds=[r0];let cur=r0.length;
-  while(cur>1){cur=Math.ceil(cur/2);rounds.push(Array.from({length:cur},()=>({p1:null,p2:null,winner:null})));}
-  r0.forEach((m,i)=>{if(m.p2===null){m.winner=m.p1;propagate(rounds,0,i);}});
+// ══ 單淘汰賽程建立（緊湊型）══════════════════════════════
+function buildBracket(pl) {
+  const n = pl.length;
+  if(n === 1) {
+    return [[{ p1:pl[0], p2:null, winner:pl[0], seedA:1, seedB:null }]];
+  }
+
+  const sz   = pow2(n);
+  const half = sz / 2;
+  const byes = sz - n;   // 直接晉級人數
+  const r1n  = n - half; // 第一輪對打場數
+
+  // ── 第一輪：低種子兩兩對打 ───────────────────────────
+  const r1 = [];
+  for(let i = 0; i < r1n; i++) {
+    const sA = byes + 1 + i;
+    const sB = n - i;
+    r1.push({ p1:pl[sA-1], p2:pl[sB-1], winner:null, seedA:sA, seedB:sB });
+  }
+
+  // ── 建立後續輪次空殼 ─────────────────────────────────
+  const rounds = [];
+  if(r1n > 0) rounds.push(r1);
+  let cur = half / 2;
+  while(cur >= 1) {
+    rounds.push(Array.from({length:cur}, ()=>({ p1:null, p2:null, winner:null })));
+    cur = Math.floor(cur / 2);
+  }
+
+  const r2idx = r1n > 0 ? 1 : 0;
+  if(r2idx >= rounds.length) return rounds;
+  const r2 = rounds[r2idx];
+
+  // ── 填入第二輪 ───────────────────────────────────────
+  // 交錯排列 half 個 slot：種子1, r1場1勝, 種子2, r1場2勝, ...
+  // 若種子多於 r1 場：多餘種子繼續填（互相配對）
+  // 若 r1 場多於種子：多餘 r1 勝者繼續填（互相配對）
+  const slots = [];  // 長度 = half，記錄每個 slot 的來源
+  let bi = 0, ri = 0;
+  while(slots.length < half) {
+    if(bi < byes)  { slots.push({ type:'bye', idx:bi++ }); }
+    if(slots.length < half && ri < r1n) { slots.push({ type:'r1', idx:ri++ }); }
+  }
+
+  const r1PropT = [];  // 記錄 r1[i] 應 propagate 到哪
+  slots.forEach((s, slotIdx) => {
+    const mi  = Math.floor(slotIdx / 2);
+    const key = slotIdx % 2 === 0 ? 'p1' : 'p2';
+    if(s.type === 'bye') {
+      r2[mi][key] = pl[s.idx];
+    } else {
+      r1PropT.push({ mi, key });
+    }
+  });
+
+  r1.forEach((m, i) => {
+    if(r1PropT[i]) { m._r2mi = r1PropT[i].mi; m._r2key = r1PropT[i].key; }
+  });
+
   return rounds;
 }
-function propagate(rounds,ri,mi){
-  const w=rounds[ri][mi].winner;
-  if(!w||ri+1>=rounds.length)return;
-  rounds[ri+1][~~(mi/2)][mi%2===0?'p1':'p2']=w;
+
+// ── propagate 勝者到下一輪 ───────────────────────────────
+function propagate(rounds, ri, mi) {
+  const m = rounds[ri][mi];
+  const w = m.winner;
+  if(!w) return;
+  if(ri === 0 && m._r2mi !== undefined && rounds.length > 1) {
+    const r2 = rounds[1];
+    if(r2 && r2[m._r2mi]) r2[m._r2mi][m._r2key] = w;
+    return;
+  }
+  const nextRi = ri + 1;
+  if(nextRi >= rounds.length) return;
+  const nextMi  = Math.floor(mi / 2);
+  const nextKey = mi % 2 === 0 ? 'p1' : 'p2';
+  if(rounds[nextRi] && rounds[nextRi][nextMi]) {
+    rounds[nextRi][nextMi][nextKey] = w;
+  }
 }
+
 
 // 渲染
 function render(){
@@ -873,7 +949,15 @@ function render(){
   if(!state.drawn){wrap.style.display='none';empty.style.display='flex';return;}
   wrap.style.display='flex';empty.style.display='none';
   const R=state.rounds,T=R.length,maxM=R[0].length;
-  const rNames=['第一輪','第二輪','第三輪','第四輪','準決賽','決賽'];
+  // 動態輪次名稱：根據實際 rounds 長度決定
+  const totalRoundCount = R.length;
+  const allNames = ['第一輪','第二輪','第三輪','第四輪','準決賽','決賽','冠軍賽'];
+  // 若第一輪只有1場且後面還有多輪 → 保留「第一輪」
+  // 標準顯示：從「第一輪」開始，最後一輪叫「決賽」
+  const rNames = Array.from({length:totalRoundCount}, (_,i) => {
+    if(i === totalRoundCount-1 && totalRoundCount > 1) return '決賽';
+    return allNames[i] || ('第'+(i+1)+'輪');
+  });
 
   for(let r=0;r<T;r++){
     const matches=R[r],sh=(maxM/matches.length)*80;
@@ -889,7 +973,11 @@ function render(){
       mw.appendChild(card);mc.appendChild(mw);
     });
     col.appendChild(mc);wrap.appendChild(col);
-    if(r<T-1)wrap.appendChild(makeConn(matches.length,sh));
+    if(r<T-1){
+      const nextMatches = R[r+1];
+      const nextSh = (maxM / nextMatches.length) * 80;
+      wrap.appendChild(makeConn(matches, sh, nextSh, nextMatches.length));
+    }
   }
 
   const cc=mkEl('div','round-col');
@@ -912,26 +1000,78 @@ function makeSlot(m,key,ri,mi){
   if(isL)s.classList.add('loser');
   const canClick=isAdmin&&m.p1&&m.p2&&!m.winner&&player;
   if(canClick)s.classList.add('clickable');
-  const sn=key==='p1'?mi*2+1:mi*2+2;
-  s.innerHTML=`<span class="seed">${ri===0?sn:''}</span><span class="player-name ${player?'':'empty'}">${player||'—'}</span>${isW?'<span class="win-arrow">▶</span>':''}`;
+  const sn = ri===0 ? (key==='p1' ? (m.seedA||'') : (m.seedB||'')) : '';
+  s.innerHTML=`<span class="seed">${sn}</span><span class="player-name ${player?'':' empty'}">${player||'—'}</span>${isW?'<span class="win-arrow">▶</span>':''}`;
   if(canClick){s.title=`點擊設定 ${player} 勝出`;s.addEventListener('click',()=>{m.winner=player;propagate(state.rounds,ri,mi);render();});}
   return s;
 }
 
-function makeConn(cnt,sh){
-  const col=mkEl('div','connector-col');
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('width','36');svg.setAttribute('height',cnt*sh+44);svg.style.marginTop='34px';
-  for(let i=0;i<cnt;i+=2){
-    const y1=i*sh+sh/2,y2=(i+1)*sh+sh/2,ym=(y1+y2)/2;
-    [`M0,${y1} H18 V${ym}`,`M0,${y2} H18 V${ym}`,`M18,${ym} H36`].forEach(d=>{
-      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-      p.setAttribute('d',d);p.setAttribute('fill','none');
-      p.setAttribute('stroke','#c8c3ba');p.setAttribute('stroke-width','1.5');
-      svg.appendChild(p);
-    });
+// makeConn：依來源 matches 的 _r2mi propagate 目標畫連接線
+// srcMatches = 來源輪的 match 陣列（含 _r2mi / _r2key 或一般 propagate）
+// srcSh = 來源輪每場高度；dstSh = 目的輪每場高度；dstCnt = 目的輪場數
+function makeConn(srcMatches, srcSh, dstSh, dstCnt){
+  const col = mkEl('div','connector-col');
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  const totalH = Math.max(srcMatches.length * srcSh, dstCnt * dstSh) + 44;
+  svg.setAttribute('width','36');
+  svg.setAttribute('height', totalH);
+  svg.style.marginTop = '34px';
+
+  const stroke = '#c8c3ba';
+  const sw     = '1.5';
+
+  function addPath(d){
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',d); p.setAttribute('fill','none');
+    p.setAttribute('stroke',stroke); p.setAttribute('stroke-width',sw);
+    svg.appendChild(p);
   }
-  col.appendChild(svg);return col;
+
+  // 每個來源 match 的中心 Y
+  const srcY = (mi) => mi * srcSh + srcSh / 2;
+  // 每個目的 match 的中心 Y（目的場次高度 = dstSh）
+  const dstY = (mi) => mi * dstSh + dstSh / 2;
+
+  // 記錄每個目的 match 有哪些來源 Y 要連過去
+  const dstGroups = {};
+  srcMatches.forEach((m, si) => {
+    // 目的 matchIdx
+    let dmi;
+    if(m._r2mi !== undefined) {
+      dmi = m._r2mi;
+    } else {
+      dmi = Math.floor(si / 2);
+    }
+    if(!dstGroups[dmi]) dstGroups[dmi] = [];
+    dstGroups[dmi].push(srcY(si));
+  });
+
+  // 對每組目的 match，畫從各來源 Y 到目的 Y 的連線
+  Object.entries(dstGroups).forEach(([dmiStr, ys]) => {
+    const dmi = Number(dmiStr);
+    const dy  = dstY(dmi);
+    if(ys.length === 1) {
+      // 單一來源：從來源 Y 橫線到中點，再斜接到目的 Y，再橫線到右側
+      const sy = ys[0];
+      if(Math.abs(sy - dy) < 2) {
+        // 幾乎同高，直接一條橫線
+        addPath(`M0,${sy} H36`);
+      } else {
+        // 折線：左端 → 中點（垂直連接） → 右端
+        addPath(`M0,${sy} H18 V${dy} H36`);
+      }
+    } else {
+      // 多個來源：各自橫線到中間，垂直收束到中點，再橫線到目的
+      const ymin = Math.min(...ys);
+      const ymax = Math.max(...ys);
+      const ym   = (ymin + ymax) / 2;
+      ys.forEach(y => addPath(`M0,${y} H18 V${ym}`));
+      addPath(`M18,${ym} V${dy} H36`);
+    }
+  });
+
+  col.appendChild(svg);
+  return col;
 }
 
 // 抽簽
@@ -1094,6 +1234,26 @@ function _dlRaw(csvText, fname){
   a.href=URL.createObjectURL(new Blob([csvText],{type:'text/csv;charset=utf-8;'}));
   a.download=fname; a.click();
 }
+async function backupNow(){
+  const btn=$$('backup-btn');
+  const res_el=$$('backup-result');
+  btn.disabled=true; btn.textContent='備份中…';
+  res_el.style.display='none';
+  const res=await gasGet({action:'backup'});
+  btn.disabled=false; btn.textContent='📦 立即備份試算表資料';
+  if(res?.ok){
+    res_el.style.display='block';
+    res_el.style.color='var(--green)';
+    res_el.textContent='✅ '+res.message;
+    toast('備份成功','ok');
+  }else{
+    res_el.style.display='block';
+    res_el.style.color='var(--red)';
+    res_el.textContent='❌ 備份失敗：'+(res?.error||'請確認 GAS 連線');
+    toast('備份失敗','err');
+  }
+}
+
 function exportJSON(){
   if(!state.drawn){toast('尚無對戰資料','err');return;}
   const a=document.createElement('a');
